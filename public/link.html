@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vincular WhatsApp</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fcfbf8;
+      --bg-soft: #f4efe7;
+      --panel: #ffffff;
+      --text: #111111;
+      --muted: #666055;
+      --line: #d9d2c8;
+      --black: #111111;
+      --shadow: 0 16px 34px rgba(17, 17, 17, 0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Whyte", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(540px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(34px, 7vw, 52px);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .qr-wrap {
+      margin-top: 24px;
+      min-height: 360px;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 18px;
+    }
+    .qr-wrap img {
+      width: min(320px, 100%);
+      height: auto;
+      display: block;
+    }
+    .status {
+      margin-top: 18px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background: #faf7f2;
+      font-weight: 600;
+    }
+    .status.ok {
+      background: #cbe9d1;
+    }
+    .status.warn {
+      background: #f8ebbb;
+    }
+    .status.off {
+      background: #f5c3bc;
+    }
+    .note {
+      margin-top: 16px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Vincular WhatsApp</h1>
+    <p>Escaneá este QR una sola vez. Cuando la vinculación se apruebe, te llevamos automáticamente al panel de administración.</p>
+    <div id="qrWrap" class="qr-wrap">
+      <p>Cargando estado de conexión...</p>
+    </div>
+    <div id="status" class="status">Iniciando…</div>
+    <p class="note">Si ya existe una sesión guardada, esta pantalla te redirige sola al admin.</p>
+  </main>
+  <script>
+    const qrWrapEl = document.getElementById('qrWrap')
+    const statusEl = document.getElementById('status')
+
+    function renderState(data) {
+      if (data.connected || data.status === 'connected') {
+        statusEl.className = 'status ok'
+        statusEl.textContent = 'Conectado. Redirigiendo al panel…'
+        qrWrapEl.innerHTML = '<p>Sesión activa.</p>'
+        setTimeout(() => {
+          window.location.replace('/admin')
+        }, 700)
+        return
+      }
+
+      if (data.status === 'qr' && data.qrDataUrl) {
+        statusEl.className = 'status warn'
+        statusEl.textContent = 'Esperando escaneo del QR'
+        qrWrapEl.innerHTML = `<img src="${data.qrDataUrl}" alt="QR de WhatsApp">`
+        return
+      }
+
+      if (data.status === 'logged_out') {
+        statusEl.className = 'status off'
+        statusEl.textContent = 'Sesión cerrada. Esperando nuevo QR…'
+        qrWrapEl.innerHTML = '<p>Preparando nueva vinculación…</p>'
+        return
+      }
+
+      statusEl.className = 'status'
+      statusEl.textContent = data.status === 'reconnecting'
+        ? 'Reconectando…'
+        : 'Esperando QR…'
+      qrWrapEl.innerHTML = '<p>Generando QR…</p>'
+    }
+
+    async function poll() {
+      const response = await fetch('/api/link-status', { cache: 'no-store' })
+      const data = await response.json()
+      renderState(data)
+    }
+
+    poll().catch(console.error)
+    setInterval(() => {
+      poll().catch(console.error)
+    }, 2000)
+  </script>
+</body>
+</html>

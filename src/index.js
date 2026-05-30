@@ -10,7 +10,8 @@ import {
 } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import P from 'pino'
-import qrcode from 'qrcode-terminal'
+import QRCode from 'qrcode'
+import terminalQrcode from 'qrcode-terminal'
 
 if (!globalThis.crypto) {
   globalThis.crypto = webcrypto
@@ -32,6 +33,7 @@ const CONVERSATIONS_DIR = new URL('../data/', import.meta.url)
 const CONVERSATIONS_FILE = new URL('../data/conversations.json', import.meta.url)
 const CONFLICT_RULES_FILE = new URL('../data/conflict-rules.json', import.meta.url)
 const ADMIN_PAGE_FILE = new URL('../public/admin.html', import.meta.url)
+const LINK_PAGE_FILE = new URL('../public/link.html', import.meta.url)
 const CONVERSATION_STATUSES = new Set(['pendiente', 'respondida', 'urgente'])
 const DEFAULT_TAGS = []
 const QUICK_REPLIES = [
@@ -131,6 +133,12 @@ const conversations = new Map()
 let adminServerStarted = false
 let persistConversationsPromise = Promise.resolve()
 let conflictRules = DEFAULT_CONFLICT_RULES
+let linkState = {
+  connected: false,
+  status: 'starting',
+  qrDataUrl: '',
+  updatedAt: null
+}
 
 function getTextFromMessage(message) {
   if (!message) return ''
@@ -568,13 +576,33 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload))
 }
 
+function setLinkState(updates) {
+  linkState = {
+    ...linkState,
+    ...updates,
+    updatedAt: getIsoTimestamp()
+  }
+}
+
 async function handleAdminRequest(req, res) {
   const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
 
-  if (req.method === 'GET' && (requestUrl.pathname === '/' || requestUrl.pathname === '/admin')) {
+  if (req.method === 'GET' && requestUrl.pathname === '/') {
+    const html = await readFile(LINK_PAGE_FILE, 'utf8')
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end(html)
+    return
+  }
+
+  if (req.method === 'GET' && requestUrl.pathname === '/admin') {
     const html = await readFile(ADMIN_PAGE_FILE, 'utf8')
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
     res.end(html)
+    return
+  }
+
+  if (req.method === 'GET' && requestUrl.pathname === '/api/link-status') {
+    sendJson(res, 200, linkState)
     return
   }
 
@@ -1071,6 +1099,12 @@ async function startBot() {
 
       console.log('Conexion cerrada.')
 
+      setLinkState({
+        connected: false,
+        status: shouldReconnect ? 'reconnecting' : 'logged_out',
+        qrDataUrl: ''
+      })
+
       if (shouldReconnect) {
         if (activeSocket === sock) {
           activeSocket = undefined
@@ -1085,11 +1119,17 @@ async function startBot() {
     }
 
     if (qr) {
-      qrcode.generate(qr, { small: true })
+      terminalQrcode.generate(qr, { small: true })
+      QRCode.toDataURL(qr, { margin: 1, width: 320 }).then((qrDataUrl) => {
+        setLinkState({ connected: false, status: 'qr', qrDataUrl })
+      }).catch((error) => {
+        console.error('No se pudo generar el QR web:', error)
+      })
       console.log('Escanea el QR con WhatsApp.')
     }
 
     if (connection === 'open') {
+      setLinkState({ connected: true, status: 'connected', qrDataUrl: '' })
       console.log('Conectado a WhatsApp.')
     }
   })
