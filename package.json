@@ -1,0 +1,27 @@
+{
+  "name": "whatsapp-bot-baileys",
+  "version": "1.0.0",
+  "description": "Bot de WhatsApp con Node.js y Baileys",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "postinstall": "node scripts/patch-baileys-libsignal.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "bot",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "6.17.16",
+    "dotenv": "^16.4.5",
+    "pino": "^9.3.2",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

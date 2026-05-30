@@ -1,0 +1,5 @@
+node_modules/
+auth/
+data/conversations.json
+.env
+*.log

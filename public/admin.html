@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conversaciones WhatsApp</title>
+  <style>
+    @font-face {
+      font-family: "Whyte";
+      src: url("/fonts/whyte/Whyte-Regular.woff2") format("woff2"),
+           url("/fonts/whyte/Whyte-Regular.woff") format("woff");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Whyte";
+      src: url("/fonts/whyte/Whyte-Medium.woff2") format("woff2"),
+           url("/fonts/whyte/Whyte-Medium.woff") format("woff");
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Whyte";
+      src: url("/fonts/whyte/Whyte-Bold.woff2") format("woff2"),
+           url("/fonts/whyte/Whyte-Bold.woff") format("woff");
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: light;
+      --bg: #fcfbf8;
+      --bg-soft: #f4efe7;
+      --panel: #ffffff;
+      --panel-soft: #faf7f2;
+      --text: #111111;
+      --muted: #666055;
+      --line: #d9d2c8;
+      --black: #111111;
+      --yellow: #f6db7b;
+      --green: #bfe3c1;
+      --violet: #d8b4fe;
+      --blue: #c7defe;
+      --pink: #f8c4cf;
+      --shadow: 0 16px 34px rgba(17, 17, 17, 0.06);
+    }
+
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #111111;
+      --bg-soft: #181818;
+      --panel: #181818;
+      --panel-soft: #202020;
+      --text: #f5efe6;
+      --muted: #b9b0a4;
+      --line: #3f3a35;
+      --black: #f5efe6;
+      --shadow: none;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Whyte", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+      color: var(--text);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .page {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 0 28px 44px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      margin: 0 -28px;
+      padding: 14px 28px;
+      backdrop-filter: blur(8px);
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-inner {
+      max-width: 1220px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      background: linear-gradient(135deg, #ff7a18, #af002d 70%);
+      box-shadow: 14px 0 0 0 #0ea5e9, 7px 10px 0 0 #22c55e;
+      margin-right: 16px;
+    }
+
+    .topbar-actions,
+    .hero-meta,
+    .toolbar,
+    .card-header,
+    .card-footer,
+    .card-actions,
+    .modal-header,
+    .modal-tools,
+    .reply-actions,
+    .summary-grid {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .hero {
+      padding: 52px 0 18px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .hero h1 {
+      margin: 0 0 14px;
+      font-size: clamp(40px, 5.5vw, 60px);
+      line-height: 0.97;
+      letter-spacing: -0.05em;
+      max-width: 430px;
+    }
+
+    .hero p,
+    .meta,
+    .jid,
+    .message-time,
+    .summary-label,
+    .empty,
+    .mini-note {
+      color: var(--muted);
+    }
+
+    .hero p {
+      max-width: 420px;
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.55;
+    }
+
+    .hero-nav {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 18px;
+    }
+
+    .hero-link {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      font-weight: 600;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      gap: 18px;
+      margin-top: 34px;
+    }
+
+    .stat {
+      min-height: 160px;
+      padding: 18px;
+      border: 1px solid rgba(17, 17, 17, 0.08);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .stat:nth-child(1) { background: var(--yellow); transform: rotate(-1deg); }
+    .stat:nth-child(2) { background: var(--violet); transform: rotate(1deg); }
+    .stat:nth-child(3) { background: var(--green); transform: rotate(-0.6deg); }
+    .stat:nth-child(4) { background: var(--pink); transform: rotate(0.8deg); }
+    .stat:nth-child(5) { background: var(--blue); transform: rotate(-0.8deg); }
+
+    body[data-theme="dark"] .stat {
+      color: #111111;
+      border-color: rgba(17, 17, 17, 0.12);
+    }
+
+    .stat-value {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .toolbar {
+      margin-top: 28px;
+    }
+
+    .input,
+    .select,
+    .textarea,
+    .button,
+    .button-link {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .input,
+    .select,
+    .textarea {
+      background: var(--panel-soft);
+      color: var(--text);
+      min-height: 46px;
+      padding: 12px 14px;
+    }
+
+    .textarea {
+      width: 100%;
+      min-height: 98px;
+      resize: vertical;
+    }
+
+    .search {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .tag-search,
+    .date-filter {
+      min-width: 170px;
+    }
+
+    .button,
+    .button-link {
+      cursor: pointer;
+      min-height: 46px;
+      padding: 12px 16px;
+      background: var(--black);
+      border-color: var(--black);
+      color: var(--bg);
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .button.secondary,
+    .button-link.secondary {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--text);
+    }
+
+    .button:hover,
+    .button-link:hover {
+      transform: translateY(-1px);
+      opacity: 0.93;
+    }
+
+    .list {
+      display: grid;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .card {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 14px;
+    }
+
+    .card-header,
+    .card-footer,
+    .modal-header {
+      justify-content: space-between;
+    }
+
+    .tabbar {
+      display: flex;
+      gap: 10px;
+      margin: 18px 0 22px;
+      flex-wrap: wrap;
+    }
+
+    .tab-button {
+      cursor: pointer;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--text);
+      font-weight: 700;
+      border-radius: 999px;
+    }
+
+    .tab-button.active {
+      background: var(--black);
+      color: var(--bg);
+      border-color: var(--black);
+    }
+
+    .tab-panel[hidden] {
+      display: none;
+    }
+
+    .name {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .preview,
+    .message-text {
+      line-height: 1.55;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .pill,
+    .status-badge,
+    .unread-badge,
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 700;
+      background: transparent;
+    }
+
+    .status-pendiente { background: #f8ebbb; }
+    .status-respondida { background: #cbe9d1; }
+    .status-urgente { background: #f5c3bc; }
+    .conflict-leve { background: #f8ddb3; }
+    .conflict-agresion,
+    .conflict-amenaza { background: #f5c3bc; }
+    .unread-badge { background: #d9c3ff; }
+    .tag-chip { background: #d3e5ff; }
+
+    body[data-theme="dark"] .status-pendiente,
+    body[data-theme="dark"] .status-respondida,
+    body[data-theme="dark"] .status-urgente,
+    body[data-theme="dark"] .conflict-leve,
+    body[data-theme="dark"] .conflict-agresion,
+    body[data-theme="dark"] .conflict-amenaza,
+    body[data-theme="dark"] .unread-badge,
+    body[data-theme="dark"] .tag-chip {
+      color: #111111;
+    }
+
+    .tags,
+    .detail-grid,
+    .notes-wrap,
+    .reply-wrap {
+      display: grid;
+      gap: 10px;
+    }
+
+    .summary-grid {
+      align-items: stretch;
+    }
+
+    .summary-card {
+      flex: 1 1 180px;
+      min-width: 180px;
+      padding: 14px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+    }
+
+    .summary-value {
+      margin-top: 6px;
+      font-weight: 800;
+    }
+
+    .modal[hidden] {
+      display: none;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      padding: 64px 20px 20px;
+      background: rgba(17, 17, 17, 0.4);
+      display: grid;
+      place-items: start center;
+    }
+
+    .modal-panel {
+      width: min(980px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      padding: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .messages {
+      display: grid;
+      gap: 12px;
+    }
+
+    .chat-thread {
+      display: grid;
+      gap: 12px;
+      max-height: 420px;
+      overflow: auto;
+      padding-right: 6px;
+    }
+
+    .chat-bubble {
+      max-width: 78%;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 18px;
+    }
+
+    .chat-bubble.in {
+      justify-self: start;
+      border-top-left-radius: 6px;
+    }
+
+    .chat-bubble.out {
+      justify-self: end;
+      background: #edf4ff;
+      border-top-right-radius: 6px;
+    }
+
+    body[data-theme="dark"] .chat-bubble.out {
+      background: #243041;
+    }
+
+    .chat-meta {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .chat-compose {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+    }
+
+    .message {
+      padding: 14px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+    }
+
+    .message.out {
+      background: #edf4ff;
+    }
+
+    body[data-theme="dark"] .message.out {
+      background: #243041;
+    }
+
+    .message-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .message-direction {
+      font-weight: 800;
+    }
+
+    .section-title {
+      margin: 22px 0 12px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    @media print {
+      .topbar,
+      .hero,
+      .modal-tools,
+      .toolbar,
+      .reply-wrap,
+      .notes-wrap,
+      .card-footer,
+      .button,
+      .button-link {
+        display: none !important;
+      }
+
+      body {
+        background: #fff;
+        color: #000;
+      }
+
+      .modal,
+      .modal-panel {
+        position: static;
+        inset: auto;
+        width: 100%;
+        max-height: none;
+        overflow: visible;
+        box-shadow: none;
+        border: none;
+        background: #fff;
+      }
+    }
+
+    @media (max-width: 780px) {
+      .page {
+        padding: 0 16px 28px;
+      }
+
+      .topbar {
+        margin: 0 -16px;
+        padding: 12px 16px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-nav,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 34px;
+      }
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <main class="page">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>Centro de Atención</span>
+        </div>
+        <div class="topbar-actions">
+          <a class="button-link secondary" href="/api/conversations-export.csv">Exportar CSV</a>
+          <button id="themeToggle" class="button secondary" type="button">Modo noche</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <h1>Panel Administración</h1>
+
+          <div class="hero-nav">
+            <div class="hero-link"><span>Conversaciones activas</span><span>01</span></div>
+            <div class="hero-link"><span>Seguimiento humano</span><span>02</span></div>
+            <div class="hero-link"><span>Filtros y estados</span><span>03</span></div>
+            <div class="hero-link"><span>Respuestas rápidas</span><span>04</span></div>
+          </div>
+
+        </div>
+      </div>
+
+      <div id="stats" class="stats"></div>
+
+      <div class="toolbar">
+        <input id="search" class="input search" type="search" placeholder="Buscar por nombre, telefono o mensaje">
+        <input id="tagFilter" class="input tag-search" type="search" placeholder="Filtrar por etiqueta">
+        <input id="fromDate" class="input date-filter" type="date">
+        <input id="toDate" class="input date-filter" type="date">
+        <select id="statusFilter" class="select">
+          <option value="">Todos los estados</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="respondida">Respondida</option>
+          <option value="urgente">Urgente</option>
+        </select>
+        <button id="refresh" class="button secondary" type="button">Actualizar</button>
+      </div>
+    </section>
+
+    <section id="list" class="list"></section>
+  </main>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div>
+          <h2 id="modalTitle" class="name"></h2>
+          <div id="modalMeta" class="meta"></div>
+        </div>
+        <div class="modal-tools">
+          <button id="printConversation" class="button secondary" type="button">Exportar PDF</button>
+          <button id="closeModal" class="button secondary" type="button">Cerrar</button>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <button id="detailsTab" class="tab-button active" type="button">Detalles</button>
+        <button id="replyTab" class="tab-button" type="button">Responder</button>
+      </div>
+
+      <section id="detailsPanel" class="tab-panel">
+      <div class="summary-grid">
+        <div class="summary-card"><div class="summary-label">Estado</div><div class="summary-value"><span id="modalStatusBadge"></span></div></div>
+        <div class="summary-card"><div class="summary-label">No leídos</div><div id="modalUnread" class="summary-value">0</div></div>
+        <div class="summary-card"><div class="summary-label">Etiquetas</div><div id="modalTagsPreview" class="summary-value"></div></div>
+        <div class="summary-card"><div class="summary-label">Última respuesta del bot</div><div id="modalLastBotReply" class="summary-value"></div></div>
+        <div class="summary-card"><div class="summary-label">Tiempo sin responder</div><div id="modalWaitingTime" class="summary-value"></div></div>
+        <div class="summary-card"><div class="summary-label">Motivo de derivación</div><div id="modalEscalationReason" class="summary-value"></div></div>
+        <div class="summary-card"><div class="summary-label">Nivel de conflicto</div><div id="modalConflictLevel" class="summary-value"></div></div>
+      </div>
+
+      <h3 class="section-title">Gestión</h3>
+      <div class="notes-wrap">
+        <div class="card-actions">
+          <select id="modalStatus" class="select">
+            <option value="pendiente">Pendiente</option>
+            <option value="respondida">Respondida</option>
+            <option value="urgente">Urgente</option>
+          </select>
+          <button id="markRead" class="button secondary" type="button">Marcar leída</button>
+          <button id="saveMetadata" class="button" type="button">Guardar cambios</button>
+        </div>
+        <input id="modalTags" class="input" type="text" placeholder="Etiquetas separadas por coma. Ej: turno, online, primera vez">
+        <textarea id="modalNotes" class="textarea" placeholder="Notas internas del administrador"></textarea>
+      </div>
+
+      <h3 class="section-title">Responder</h3>
+      <div class="reply-wrap">
+        <select id="quickReplySelect" class="select">
+          <option value="">Respuestas rápidas del operador</option>
+        </select>
+        <textarea id="replyText" class="textarea" placeholder="Escribí una respuesta manual para este contacto"></textarea>
+        <div class="reply-actions">
+          <button id="sendReply" class="button" type="button">Enviar respuesta</button>
+        </div>
+      </div>
+
+      <h3 class="section-title">Historial completo</h3>
+      <div id="messages" class="messages"></div>
+      </section>
+
+      <section id="replyPanel" class="tab-panel" hidden>
+        <h3 class="section-title">Conversación</h3>
+        <div id="chatThread" class="chat-thread"></div>
+
+        <div class="chat-compose">
+          <select id="quickReplySelect" class="select">
+            <option value="">Respuestas rápidas del operador</option>
+          </select>
+          <textarea id="replyText" class="textarea" placeholder="Escribí una respuesta manual para este contacto"></textarea>
+          <div class="reply-actions">
+            <button id="sendReply" class="button" type="button">Enviar respuesta</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const listEl = document.getElementById('list')
+    const statsEl = document.getElementById('stats')
+    const searchEl = document.getElementById('search')
+    const tagFilterEl = document.getElementById('tagFilter')
+    const fromDateEl = document.getElementById('fromDate')
+    const toDateEl = document.getElementById('toDate')
+    const statusFilterEl = document.getElementById('statusFilter')
+    const refreshEl = document.getElementById('refresh')
+    const themeToggleEl = document.getElementById('themeToggle')
+    const modalEl = document.getElementById('modal')
+    const closeModalEl = document.getElementById('closeModal')
+    const detailsTabEl = document.getElementById('detailsTab')
+    const replyTabEl = document.getElementById('replyTab')
+    const detailsPanelEl = document.getElementById('detailsPanel')
+    const replyPanelEl = document.getElementById('replyPanel')
+    const printConversationEl = document.getElementById('printConversation')
+    const modalTitleEl = document.getElementById('modalTitle')
+    const modalMetaEl = document.getElementById('modalMeta')
+    const modalStatusEl = document.getElementById('modalStatus')
+    const modalStatusBadgeEl = document.getElementById('modalStatusBadge')
+    const modalUnreadEl = document.getElementById('modalUnread')
+    const modalTagsPreviewEl = document.getElementById('modalTagsPreview')
+    const modalLastBotReplyEl = document.getElementById('modalLastBotReply')
+    const modalWaitingTimeEl = document.getElementById('modalWaitingTime')
+    const modalEscalationReasonEl = document.getElementById('modalEscalationReason')
+    const modalConflictLevelEl = document.getElementById('modalConflictLevel')
+    const modalTagsEl = document.getElementById('modalTags')
+    const modalNotesEl = document.getElementById('modalNotes')
+    const markReadEl = document.getElementById('markRead')
+    const saveMetadataEl = document.getElementById('saveMetadata')
+    const quickReplySelectEl = document.getElementById('quickReplySelect')
+    const replyTextEl = document.getElementById('replyText')
+    const sendReplyEl = document.getElementById('sendReply')
+    const messagesEl = document.getElementById('messages')
+    const chatThreadEl = document.getElementById('chatThread')
+
+    let conversations = []
+    let activeConversationJid = ''
+    let quickReplies = []
+    let previousConversationSnapshot = new Map()
+    let audioContext
+
+    const storedTheme = localStorage.getItem('admin-theme') || 'light'
+    document.body.dataset.theme = storedTheme
+    themeToggleEl.textContent = storedTheme === 'light' ? 'Modo noche' : 'Modo día'
+    const defaultTitle = document.title
+
+    function escapeHtml(value) {
+      return `${value ?? ''}`
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;')
+    }
+
+    function formatDate(value) {
+      if (!value) return '-'
+      return new Date(value).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })
+    }
+
+    function formatStatusLabel(status) {
+      return status.charAt(0).toUpperCase() + status.slice(1)
+    }
+
+    function formatRelativeTime(value) {
+      if (!value) return '-'
+      const diffMs = Date.now() - new Date(value).getTime()
+      const diffMinutes = Math.max(0, Math.floor(diffMs / 60000))
+      if (diffMinutes < 1) return 'Hace menos de 1 min'
+      if (diffMinutes < 60) return `Hace ${diffMinutes} min`
+      const diffHours = Math.floor(diffMinutes / 60)
+      if (diffHours < 24) return `Hace ${diffHours} h`
+      const diffDays = Math.floor(diffHours / 24)
+      return `Hace ${diffDays} día(s)`
+    }
+
+    function isWaitingForReply(conversation) {
+      return Boolean(conversation.lastIncomingAt) && (!conversation.lastOutgoingAt || conversation.lastIncomingAt > conversation.lastOutgoingAt)
+    }
+
+    function getStatusBadge(status) {
+      return `<span class="status-badge status-${status}">${formatStatusLabel(status)}</span>`
+    }
+
+    function getConflictBadge(level) {
+      if (!level) return '<span class="meta">Sin conflicto</span>'
+      return `<span class="status-badge conflict-${level}">${formatStatusLabel(level)}</span>`
+    }
+
+    function getTags(tags) {
+      if (!tags || tags.length === 0) return '<span class="meta">Sin etiquetas</span>'
+      return tags.map((tag) => {
+        const label = tag === 'operador' ? 'Derivado a humano' : tag
+        return `<span class="tag-chip">${escapeHtml(label)}</span>`
+      }).join('')
+    }
+
+    function parseTags(value) {
+      return value.split(',').map((tag) => tag.trim()).filter(Boolean)
+    }
+
+    function ensureAudioContext() {
+      if (audioContext || typeof window.AudioContext === 'undefined') return
+      audioContext = new window.AudioContext()
+    }
+
+    function playNotificationSound() {
+      if (!audioContext || audioContext.state === 'suspended') return
+
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      oscillator.type = 'sine'
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime)
+      gainNode.gain.setValueAtTime(0.001, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.08, audioContext.currentTime + 0.01)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.24)
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      oscillator.start()
+      oscillator.stop(audioContext.currentTime + 0.25)
+    }
+
+    function updatePageTitle(items) {
+      const unread = items.reduce((total, item) => total + item.unreadCount, 0)
+      document.title = unread > 0 ? `(${unread}) ${defaultTitle}` : defaultTitle
+    }
+
+    function detectIncomingMessages(items) {
+      let hasNewIncoming = false
+      const nextSnapshot = new Map()
+
+      for (const item of items) {
+        const previous = previousConversationSnapshot.get(item.jid)
+        nextSnapshot.set(item.jid, {
+          unreadCount: item.unreadCount,
+          lastIncomingAt: item.lastIncomingAt
+        })
+
+        if (!previous) continue
+
+        const unreadIncreased = item.unreadCount > previous.unreadCount
+        const incomingChanged = item.lastIncomingAt && item.lastIncomingAt !== previous.lastIncomingAt
+
+        if (unreadIncreased || incomingChanged) {
+          hasNewIncoming = true
+        }
+      }
+
+      previousConversationSnapshot = nextSnapshot
+      return hasNewIncoming
+    }
+
+    function setActiveTab(tab) {
+      const isDetails = tab === 'details'
+      detailsTabEl.classList.toggle('active', isDetails)
+      replyTabEl.classList.toggle('active', !isDetails)
+      detailsPanelEl.hidden = !isDetails
+      replyPanelEl.hidden = isDetails
+    }
+
+    function renderStats(items) {
+      const unread = items.reduce((total, item) => total + item.unreadCount, 0)
+      const urgent = items.filter((item) => item.status === 'urgente').length
+      const pending = items.filter((item) => item.status === 'pendiente').length
+      const waiting = items.filter(isWaitingForReply).length
+      statsEl.innerHTML = `
+        <article class="stat"><div class="summary-label">Conversaciones</div><div class="stat-value">${items.length}</div></article>
+        <article class="stat"><div class="summary-label">No leídos</div><div class="stat-value">${unread}</div></article>
+        <article class="stat"><div class="summary-label">Pendientes</div><div class="stat-value">${pending}</div></article>
+        <article class="stat"><div class="summary-label">Urgentes</div><div class="stat-value">${urgent}</div></article>
+        <article class="stat"><div class="summary-label">Esperando respuesta</div><div class="stat-value">${waiting}</div></article>
+      `
+    }
+
+    function renderList(items) {
+      renderStats(conversations)
+      if (items.length === 0) {
+        listEl.innerHTML = '<div class="card empty">No hay conversaciones para mostrar.</div>'
+        return
+      }
+
+      listEl.innerHTML = items.map((conversation) => `
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <div class="name">${escapeHtml(conversation.name || 'Sin nombre')}</div>
+              <div class="jid">${escapeHtml(conversation.jid)}</div>
+            </div>
+            <div class="card-actions">
+              ${getStatusBadge(conversation.status)}
+              ${conversation.conflictLevel ? getConflictBadge(conversation.conflictLevel) : ''}
+              ${conversation.unreadCount > 0 ? `<span class="unread-badge">${conversation.unreadCount} no leído(s)</span>` : ''}
+              <span class="pill">${conversation.messageCount} mensaje(s)</span>
+            </div>
+          </div>
+
+          <div class="tags">${getTags(conversation.tags)}</div>
+          <p class="preview">${escapeHtml(conversation.lastMessageText || 'Sin mensajes')}</p>
+          <div class="detail-grid meta">
+            <div>Última respuesta del bot: ${escapeHtml(formatDate(conversation.lastOutgoingAt))}</div>
+            <div>Esperando respuesta: ${isWaitingForReply(conversation) ? escapeHtml(formatRelativeTime(conversation.lastIncomingAt)) : 'No'}</div>
+          </div>
+
+          <div class="card-footer">
+            <div class="meta">Última actividad: ${escapeHtml(formatDate(conversation.lastMessageAt))}</div>
+            <div class="card-actions">
+              <select class="select" data-status-jid="${encodeURIComponent(conversation.jid)}">
+                <option value="pendiente" ${conversation.status === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                <option value="respondida" ${conversation.status === 'respondida' ? 'selected' : ''}>Respondida</option>
+                <option value="urgente" ${conversation.status === 'urgente' ? 'selected' : ''}>Urgente</option>
+              </select>
+              <button class="button secondary" type="button" data-read-jid="${encodeURIComponent(conversation.jid)}">Marcar leída</button>
+              <button class="button" type="button" data-jid="${encodeURIComponent(conversation.jid)}">Ver detalles</button>
+            </div>
+          </div>
+        </article>
+      `).join('')
+    }
+
+    function renderChat(messages) {
+      chatThreadEl.innerHTML = messages.map((message) => `
+        <article class="chat-bubble ${message.direction === 'out' ? 'out' : 'in'}">
+          <div class="message-text">${escapeHtml(message.text || '')}</div>
+          <div class="chat-meta">${message.direction === 'out' ? 'Bot/Admin' : 'Contacto'} · ${escapeHtml(formatDate(message.timestamp))}</div>
+        </article>
+      `).join('')
+      chatThreadEl.scrollTop = chatThreadEl.scrollHeight
+    }
+
+    function getFilteredConversations() {
+      const query = searchEl.value.trim().toLowerCase()
+      const tagQuery = tagFilterEl.value.trim().toLowerCase()
+      const fromDate = fromDateEl.value
+      const toDate = toDateEl.value
+      const statusFilter = statusFilterEl.value
+
+      return conversations.filter((conversation) => {
+        const haystack = [conversation.name || '', conversation.jid || '', conversation.lastMessageText || ''].join(' ').toLowerCase()
+        const matchesQuery = !query || haystack.includes(query)
+        const matchesStatus = !statusFilter || conversation.status === statusFilter
+        const matchesTag = !tagQuery || conversation.tags.some((tag) => tag.toLowerCase().includes(tagQuery))
+        const matchesFrom = !fromDate || (conversation.lastMessageAt && conversation.lastMessageAt >= `${fromDate}T00:00:00.000Z`)
+        const matchesTo = !toDate || (conversation.lastMessageAt && conversation.lastMessageAt <= `${toDate}T23:59:59.999Z`)
+        return matchesQuery && matchesStatus && matchesTag && matchesFrom && matchesTo
+      })
+    }
+
+    async function apiJson(url, options = {}) {
+      const response = await fetch(url, options)
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'Error en la solicitud')
+      return payload
+    }
+
+    async function updateConversation(jid, payload) {
+      return apiJson(`/api/conversations/${encodeURIComponent(jid)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+    }
+
+    async function sendReply(jid, text) {
+      return apiJson(`/api/conversations/${encodeURIComponent(jid)}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      })
+    }
+
+    function renderQuickReplies() {
+      quickReplySelectEl.innerHTML = ['<option value="">Respuestas rápidas del operador</option>']
+        .concat(quickReplies.map((reply) => `<option value="${escapeHtml(reply.id)}">${escapeHtml(reply.label)}</option>`))
+        .join('')
+    }
+
+    async function loadQuickReplies() {
+      quickReplies = await apiJson('/api/quick-replies')
+      renderQuickReplies()
+    }
+
+    async function loadConversations() {
+      const items = await apiJson('/api/conversations')
+      const hasNewIncoming = detectIncomingMessages(items)
+      conversations = items
+      updatePageTitle(items)
+      renderList(getFilteredConversations())
+
+      if (hasNewIncoming) {
+        playNotificationSound()
+      }
+    }
+
+    async function openConversation(jid) {
+      const conversation = await apiJson(`/api/conversations/${encodeURIComponent(jid)}`)
+      activeConversationJid = jid
+
+      if (conversation.unreadCount > 0) {
+        await updateConversation(jid, { unreadCount: 0 })
+        await loadConversations()
+        return openConversation(jid)
+      }
+
+      modalTitleEl.textContent = conversation.name || 'Sin nombre'
+      modalMetaEl.textContent = `${conversation.jid} | Inicio: ${formatDate(conversation.firstMessageAt)} | Última actividad: ${formatDate(conversation.lastMessageAt)}`
+      modalStatusEl.value = conversation.status
+      modalStatusBadgeEl.innerHTML = getStatusBadge(conversation.status)
+      modalUnreadEl.textContent = conversation.unreadCount
+      modalTagsPreviewEl.innerHTML = `<div class="tags">${getTags(conversation.tags)}</div>`
+      modalLastBotReplyEl.textContent = formatDate(conversation.lastOutgoingAt)
+      modalWaitingTimeEl.textContent = isWaitingForReply(conversation) ? `${formatRelativeTime(conversation.lastIncomingAt)} desde el último mensaje del contacto` : 'No hay espera activa'
+      modalEscalationReasonEl.textContent = conversation.escalationReason || 'Sin derivación activa'
+      modalConflictLevelEl.innerHTML = getConflictBadge(conversation.conflictLevel)
+      modalTagsEl.value = (conversation.tags || []).join(', ')
+      modalNotesEl.value = conversation.notes || ''
+      quickReplySelectEl.value = ''
+      replyTextEl.value = ''
+      setActiveTab('details')
+      messagesEl.innerHTML = conversation.messages.map((message) => `
+        <article class="message ${message.direction === 'out' ? 'out' : 'in'}">
+          <div class="message-head">
+            <span class="message-direction">${message.direction === 'out' ? 'Bot/Admin' : 'Contacto'}</span>
+            <span class="message-time">${escapeHtml(formatDate(message.timestamp))}</span>
+          </div>
+          <p class="message-text">${escapeHtml(message.text || '')}</p>
+        </article>
+      `).join('')
+      renderChat(conversation.messages)
+      modalEl.hidden = false
+    }
+
+    function closeModal() {
+      modalEl.hidden = true
+      activeConversationJid = ''
+    }
+
+    searchEl.addEventListener('input', () => renderList(getFilteredConversations()))
+    tagFilterEl.addEventListener('input', () => renderList(getFilteredConversations()))
+    fromDateEl.addEventListener('input', () => renderList(getFilteredConversations()))
+    toDateEl.addEventListener('input', () => renderList(getFilteredConversations()))
+    statusFilterEl.addEventListener('change', () => renderList(getFilteredConversations()))
+
+    refreshEl.addEventListener('click', () => {
+      loadConversations().catch((error) => alert(error.message))
+    })
+
+    themeToggleEl.addEventListener('click', () => {
+      const nextTheme = document.body.dataset.theme === 'light' ? 'dark' : 'light'
+      document.body.dataset.theme = nextTheme
+      localStorage.setItem('admin-theme', nextTheme)
+      themeToggleEl.textContent = nextTheme === 'light' ? 'Modo noche' : 'Modo día'
+    })
+
+    window.addEventListener('pointerdown', ensureAudioContext, { once: true })
+    window.addEventListener('keydown', ensureAudioContext, { once: true })
+
+    detailsTabEl.addEventListener('click', () => setActiveTab('details'))
+    replyTabEl.addEventListener('click', () => setActiveTab('reply'))
+
+    listEl.addEventListener('change', (event) => {
+      const select = event.target.closest('[data-status-jid]')
+      if (!select) return
+      updateConversation(decodeURIComponent(select.dataset.statusJid), { status: select.value })
+        .then(loadConversations)
+        .catch((error) => alert(error.message))
+    })
+
+    listEl.addEventListener('click', (event) => {
+      const detailsButton = event.target.closest('[data-jid]')
+      if (detailsButton) {
+        openConversation(decodeURIComponent(detailsButton.dataset.jid)).catch((error) => alert(error.message))
+        return
+      }
+
+      const readButton = event.target.closest('[data-read-jid]')
+      if (readButton) {
+        updateConversation(decodeURIComponent(readButton.dataset.readJid), { unreadCount: 0 })
+          .then(loadConversations)
+          .catch((error) => alert(error.message))
+      }
+    })
+
+    modalStatusEl.addEventListener('change', () => {
+      modalStatusBadgeEl.innerHTML = getStatusBadge(modalStatusEl.value)
+    })
+
+    quickReplySelectEl.addEventListener('change', () => {
+      const selected = quickReplies.find((reply) => reply.id === quickReplySelectEl.value)
+      if (!selected) return
+      replyTextEl.value = selected.text
+    })
+
+    saveMetadataEl.addEventListener('click', async () => {
+      if (!activeConversationJid) return
+      await updateConversation(activeConversationJid, {
+        status: modalStatusEl.value,
+        notes: modalNotesEl.value,
+        tags: parseTags(modalTagsEl.value)
+      })
+      await loadConversations()
+      await openConversation(activeConversationJid)
+    })
+
+    markReadEl.addEventListener('click', async () => {
+      if (!activeConversationJid) return
+      await updateConversation(activeConversationJid, { unreadCount: 0 })
+      await loadConversations()
+      await openConversation(activeConversationJid)
+    })
+
+    sendReplyEl.addEventListener('click', async () => {
+      if (!activeConversationJid) return
+      await sendReply(activeConversationJid, replyTextEl.value)
+      await loadConversations()
+      await openConversation(activeConversationJid)
+      setActiveTab('reply')
+    })
+
+    printConversationEl.addEventListener('click', () => window.print())
+    closeModalEl.addEventListener('click', closeModal)
+    modalEl.addEventListener('click', (event) => {
+      if (event.target === modalEl) closeModal()
+    })
+
+    Promise.all([loadConversations(), loadQuickReplies()]).catch((error) => alert(error.message))
+    setInterval(() => {
+      loadConversations().catch(console.error)
+    }, 5000)
+  </script>
+</body>
+</html>

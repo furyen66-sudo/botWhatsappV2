@@ -1,0 +1,33 @@
+{
+  "amenaza": {
+    "reason": "Amenaza de denuncia o acusacion",
+    "phrases": [
+      "te voy a denunciar",
+      "lo voy a denunciar",
+      "te voy a acusar",
+      "los voy a denunciar",
+      "los voy a acusar"
+    ]
+  },
+  "agresion": {
+    "reason": "Mensaje agresivo o descalificante",
+    "phrases": [
+      "me esta tratando de boludo",
+      "me está tratando de boludo",
+      "una mierda",
+      "pelotudo",
+      "forro",
+      "concha",
+      "no me rompas"
+    ]
+  },
+  "leve": {
+    "reason": "Lenguaje inapropiado o groseria",
+    "phrases": [
+      "puto",
+      "pito",
+      "mierda",
+      "boludo"
+    ]
+  }
+}
