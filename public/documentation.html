@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation</title>
+  <style>
+    :root {
+      --bg: #fcfbf8;
+      --panel: #ffffff;
+      --text: #111111;
+      --muted: #666055;
+      --line: #d9d2c8;
+      --accent: #111111;
+      --soft: #faf7f2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Whyte", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 18px;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(36px, 5vw, 58px);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+    h2 {
+      margin: 40px 0 12px;
+      font-size: 28px;
+      letter-spacing: -0.03em;
+    }
+    h3 {
+      margin: 26px 0 10px;
+      font-size: 20px;
+    }
+    p, li {
+      color: var(--muted);
+      font-size: 16px;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 1px solid var(--line);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 700;
+      background: var(--panel);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 18px;
+    }
+    .section {
+      border-top: 1px solid var(--line);
+      padding-top: 20px;
+      margin-top: 24px;
+    }
+    code {
+      background: var(--soft);
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: var(--text);
+    }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topbar">
+      <div>
+        <h1>Documentation</h1>
+        <p>Detailed explanation of every section, control, state, and operational area inside the WhatsApp admin panel.</p>
+      </div>
+      <a class="button" href="/admin">Back to admin</a>
+    </div>
+
+    <section class="section">
+      <h2>1. General Purpose</h2>
+      <p>This admin panel is the operational center for the WhatsApp bot. It helps an operator understand what is happening in every conversation, what the bot already answered, which contacts are waiting for a human reply, and how to continue the conversation manually when needed.</p>
+      <p>The page is intentionally structured in layers: high-level metrics first, filters second, conversation list third, and a modal with deeper operational tools after opening a specific conversation.</p>
+    </section>
+
+    <section class="section">
+      <h2>2. Top Navigation Bar</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Brand Area</h3>
+          <p>The left side title identifies the panel as the service center. It is purely navigational and visual, giving the operator a stable point of reference while working inside the app.</p>
+        </article>
+        <article class="card">
+          <h3>Export CSV</h3>
+          <p>This action downloads a spreadsheet-friendly export of all conversations. It is useful for reporting, audits, external analysis, backups, and administrative review outside the panel.</p>
+        </article>
+        <article class="card">
+          <h3>Mode Toggle</h3>
+          <p>This switch changes the visual theme of the panel. It affects readability, comfort, and operator preference without changing any conversation data.</p>
+        </article>
+        <article class="card">
+          <h3>Documentation Link</h3>
+          <p>This page itself exists to document the panel in detail so a team member can understand every control and every operational meaning without guessing.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>3. Main Header Area</h2>
+      <p>The large page heading defines the current workspace. The small cards beneath it summarize the logical building blocks of the system, such as active conversations, human follow-up, filtering capabilities, and quick reply support.</p>
+      <p>This section is not just decorative. It frames the operator mindset before interacting with live data.</p>
+    </section>
+
+    <section class="section">
+      <h2>4. KPI Metric Cards</h2>
+      <p>The colored statistic cards give a fast operational snapshot:</p>
+      <ul>
+        <li><strong>Conversations:</strong> total number of stored conversations currently available in the panel.</li>
+        <li><strong>Unread:</strong> conversations or message volume that still requires attention.</li>
+        <li><strong>Pending:</strong> items that are still open or unresolved.</li>
+        <li><strong>Urgent:</strong> conversations requiring fast intervention, often due to escalation or conflict.</li>
+        <li><strong>Waiting for reply:</strong> conversations where the contact wrote after the last bot/admin reply.</li>
+      </ul>
+      <p>These cards are meant for quick prioritization before diving into the conversation list.</p>
+    </section>
+
+    <section class="section">
+      <h2>5. Filters Toolbar</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Search by name, phone, or message</h3>
+          <p>This text input searches conversation-level metadata. It allows the operator to locate a contact by visible name, WhatsApp identifier, or most recent message content.</p>
+        </article>
+        <article class="card">
+          <h3>Tag filter</h3>
+          <p>This field filters conversations by internal classification tags such as human handoff, risk, online, appointment, or any other custom operational label.</p>
+        </article>
+        <article class="card">
+          <h3>Date range filters</h3>
+          <p>These inputs constrain results by activity window. They are useful for reviewing only recent traffic, daily traffic, or a specific operational period.</p>
+        </article>
+        <article class="card">
+          <h3>Status filter</h3>
+          <p>This dropdown narrows results by conversation status, such as pending, answered, or urgent.</p>
+        </article>
+        <article class="card">
+          <h3>Refresh button</h3>
+          <p>This manually reloads panel data from the backend in case the operator wants an explicit refresh instead of waiting for the auto-polling cycle.</p>
+        </article>
+        <article class="card">
+          <h3>Trash icon / clear filters</h3>
+          <p>This control resets every filter field back to its neutral state, making the full conversation list visible again without manually clearing each input one by one.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>6. Conversation List</h2>
+      <p>Each row in the list is a compact operational summary of one WhatsApp conversation.</p>
+      <ul>
+        <li><strong>Contact name:</strong> the display name captured from WhatsApp.</li>
+        <li><strong>JID:</strong> the raw WhatsApp identifier, useful for support and debugging.</li>
+        <li><strong>Status badge:</strong> the current operational state of the conversation.</li>
+        <li><strong>Conflict badge:</strong> if present, this indicates whether the conversation includes mild conflict, aggression, or threat-level language.</li>
+        <li><strong>Unread badge:</strong> indicates new messages not yet reviewed from the panel workflow.</li>
+        <li><strong>Message count:</strong> the total number of stored messages in that thread.</li>
+        <li><strong>Tag strip:</strong> labels used to classify the conversation operationally.</li>
+        <li><strong>Preview:</strong> the latest message summary.</li>
+        <li><strong>Last bot reply / waiting line:</strong> shows whether the contact is currently waiting for a response.</li>
+        <li><strong>Action controls:</strong> allow quick status change, mark as read, or open the full details modal.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>7. Conversation Modal</h2>
+      <p>The modal is the detailed workspace for a single conversation. It contains two tabs and multiple information layers.</p>
+      <div class="grid">
+        <article class="card">
+          <h3>Details tab</h3>
+          <p>Shows structured metadata, internal notes, management actions, escalation reason, conflict level, and the full chronological history.</p>
+        </article>
+        <article class="card">
+          <h3>Reply tab</h3>
+          <p>Shows the conversation in a chat-like layout and provides the manual reply composer, quick replies, file upload, and send action.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>8. Detail Cards Inside the Modal</h2>
+      <p>The summary cards inside the modal explain the conversation state from multiple angles:</p>
+      <ul>
+        <li><strong>Status:</strong> current operational label.</li>
+        <li><strong>Unread:</strong> unread count from the operator perspective.</li>
+        <li><strong>Tags:</strong> internal categorization labels.</li>
+        <li><strong>Last bot reply:</strong> latest outgoing answer from the automated or manual side.</li>
+        <li><strong>Time waiting for response:</strong> indicates how long the contact has been waiting since their latest incoming message.</li>
+        <li><strong>Escalation reason:</strong> the reason why the conversation was sent to human follow-up.</li>
+        <li><strong>Conflict level:</strong> severity level of detected conflict, if any.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>9. Management Area</h2>
+      <p>This block is where the operator manages conversation metadata:</p>
+      <ul>
+        <li><strong>Status selector:</strong> updates the operational state.</li>
+        <li><strong>Mark as read:</strong> clears pending unread count.</li>
+        <li><strong>Save changes:</strong> persists notes, tags, and status.</li>
+        <li><strong>Tags input:</strong> stores custom labels separated by commas.</li>
+        <li><strong>Notes field:</strong> internal-only notes for the operator team.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>10. Reply Area</h2>
+      <p>This is the interactive operator reply workspace.</p>
+      <ul>
+        <li><strong>Quick replies:</strong> predefined templates to speed up common answers.</li>
+        <li><strong>Attachment input:</strong> used to upload images, audio, video, and documents for WhatsApp delivery.</li>
+        <li><strong>Text / caption field:</strong> can be used as a normal text reply or as the caption for a selected attachment.</li>
+        <li><strong>Send reply button:</strong> sends text-only replies or media + caption depending on what is currently filled in.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>11. Full History</h2>
+      <p>The history section keeps the original chronology of the conversation. It is useful for quality review, support context, operational auditing, and continuity when different operators handle the same contact.</p>
+      <p>Messages may include plain text, media previews, downloadable documents, timestamps, and sender direction information.</p>
+    </section>
+
+    <section class="section">
+      <h2>12. Linking Screen</h2>
+      <p>The root route of the application shows the WhatsApp QR linking screen. If there is no valid session, the operator scans the QR once. After successful linking, the interface redirects automatically to the admin panel. If the saved WhatsApp session remains valid on the server, that linking step does not need to be repeated.</p>
+    </section>
+  </main>
+</body>
+</html>

@@ -69,6 +69,7 @@
 
     body {
       margin: 0;
+      min-height: 100vh;
       font-family: "Whyte", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
       color: var(--text);
@@ -83,8 +84,11 @@
 
     .page {
       max-width: 1220px;
+      min-height: 100vh;
       margin: 0 auto;
       padding: 0 28px 44px;
+      display: flex;
+      flex-direction: column;
     }
 
     .topbar {
@@ -311,6 +315,8 @@
       display: grid;
       gap: 18px;
       margin-top: 18px;
+      flex: 1;
+      align-content: start;
     }
 
     .card {
@@ -500,6 +506,29 @@
       padding-top: 18px;
     }
 
+    .file-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel-soft);
+      color: var(--text);
+    }
+
+    .media-preview {
+      display: block;
+      max-width: 100%;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      border: 1px solid var(--line);
+    }
+
+    .media-link {
+      font-weight: 700;
+      color: inherit;
+      text-decoration: underline;
+    }
+
     .message {
       padding: 14px;
       background: var(--panel-soft);
@@ -632,6 +661,7 @@
           <option value="urgente">Urgente</option>
         </select>
         <button id="refresh" class="button secondary" type="button">Actualizar</button>
+        <button id="clearFilters" class="button secondary" type="button" aria-label="Limpiar filtros" title="Limpiar filtros">🗑</button>
       </div>
     </section>
 
@@ -694,7 +724,8 @@
           <select id="quickReplySelect" class="select">
             <option value="">Respuestas rápidas del operador</option>
           </select>
-          <textarea id="replyText" class="textarea" placeholder="Escribí una respuesta manual para este contacto"></textarea>
+          <input id="replyFile" class="file-input" type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+          <textarea id="replyText" class="textarea" placeholder="Escribí una respuesta manual para este contacto o usalo como texto/caption del archivo"></textarea>
           <div class="reply-actions">
             <button id="sendReply" class="button" type="button">Enviar respuesta</button>
           </div>
@@ -712,6 +743,7 @@
     const toDateEl = document.getElementById('toDate')
     const statusFilterEl = document.getElementById('statusFilter')
     const refreshEl = document.getElementById('refresh')
+    const clearFiltersEl = document.getElementById('clearFilters')
     const themeToggleEl = document.getElementById('themeToggle')
     const modalEl = document.getElementById('modal')
     const closeModalEl = document.getElementById('closeModal')
@@ -735,6 +767,7 @@
     const markReadEl = document.getElementById('markRead')
     const saveMetadataEl = document.getElementById('saveMetadata')
     const quickReplySelectEl = document.getElementById('quickReplySelect')
+    const replyFileEl = document.getElementById('replyFile')
     const replyTextEl = document.getElementById('replyText')
     const sendReplyEl = document.getElementById('sendReply')
     const messagesEl = document.getElementById('messages')
@@ -924,14 +957,50 @@
       `).join('')
     }
 
+    function renderMessageBody(message) {
+      const parts = []
+
+      if (message.mediaUrl) {
+        if (message.messageType === 'image') {
+          parts.push(`<img class="media-preview" src="${message.mediaUrl}" alt="${escapeHtml(message.fileName || 'Imagen')}">`)
+        } else if (message.messageType === 'audio') {
+          parts.push(`<audio class="media-preview" controls src="${message.mediaUrl}"></audio>`)
+        } else if (message.messageType === 'video') {
+          parts.push(`<video class="media-preview" controls src="${message.mediaUrl}"></video>`)
+        } else {
+          const label = escapeHtml(message.fileName || 'Descargar archivo')
+          parts.push(`<a class="media-link" href="${message.mediaUrl}" target="_blank" rel="noreferrer">${label}</a>`)
+        }
+      }
+
+      if (message.text) {
+        parts.push(`<div class="message-text">${escapeHtml(message.text)}</div>`)
+      }
+
+      if (!parts.length && message.fileName) {
+        parts.push(`<div class="message-text">${escapeHtml(message.fileName)}</div>`)
+      }
+
+      return parts.join('')
+    }
+
     function renderChat(messages) {
       chatThreadEl.innerHTML = messages.map((message) => `
         <article class="chat-bubble ${message.direction === 'out' ? 'out' : 'in'}">
-          <div class="message-text">${escapeHtml(message.text || '')}</div>
+          ${renderMessageBody(message)}
           <div class="chat-meta">${message.direction === 'out' ? 'Bot/Admin' : 'Contacto'} · ${escapeHtml(formatDate(message.timestamp))}</div>
         </article>
       `).join('')
       chatThreadEl.scrollTop = chatThreadEl.scrollHeight
+    }
+
+    function clearFilters() {
+      searchEl.value = ''
+      tagFilterEl.value = ''
+      fromDateEl.value = ''
+      toDateEl.value = ''
+      statusFilterEl.value = ''
+      renderList(getFilteredConversations())
     }
 
     function getFilteredConversations() {
@@ -973,6 +1042,21 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
       })
+    }
+
+    async function sendMediaReply(jid, file, caption) {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('caption', caption)
+
+      const response = await fetch(`/api/conversations/${encodeURIComponent(jid)}/reply-media`, {
+        method: 'POST',
+        body: formData
+      })
+
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'Error en la solicitud')
+      return payload
     }
 
     function renderQuickReplies() {
@@ -1022,6 +1106,7 @@
       modalNotesEl.value = conversation.notes || ''
       quickReplySelectEl.value = ''
       replyTextEl.value = ''
+      replyFileEl.value = ''
       setActiveTab('details')
       messagesEl.innerHTML = conversation.messages.map((message) => `
         <article class="message ${message.direction === 'out' ? 'out' : 'in'}">
@@ -1029,7 +1114,7 @@
             <span class="message-direction">${message.direction === 'out' ? 'Bot/Admin' : 'Contacto'}</span>
             <span class="message-time">${escapeHtml(formatDate(message.timestamp))}</span>
           </div>
-          <p class="message-text">${escapeHtml(message.text || '')}</p>
+          ${renderMessageBody(message)}
         </article>
       `).join('')
       renderChat(conversation.messages)
@@ -1050,6 +1135,8 @@
     refreshEl.addEventListener('click', () => {
       loadConversations().catch((error) => alert(error.message))
     })
+
+    clearFiltersEl.addEventListener('click', clearFilters)
 
     themeToggleEl.addEventListener('click', () => {
       const nextTheme = document.body.dataset.theme === 'light' ? 'dark' : 'light'
@@ -1117,7 +1204,13 @@
 
     sendReplyEl.addEventListener('click', async () => {
       if (!activeConversationJid) return
-      await sendReply(activeConversationJid, replyTextEl.value)
+
+      if (replyFileEl.files && replyFileEl.files[0]) {
+        await sendMediaReply(activeConversationJid, replyFileEl.files[0], replyTextEl.value)
+      } else {
+        await sendReply(activeConversationJid, replyTextEl.value)
+      }
+
       await loadConversations()
       await openConversation(activeConversationJid)
       setActiveTab('reply')

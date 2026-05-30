@@ -1,6 +1,7 @@
 import 'dotenv/config'
-import { webcrypto } from 'node:crypto'
+import { randomUUID, webcrypto } from 'node:crypto'
 import { createServer } from 'node:http'
+import { basename, extname } from 'node:path'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import {
   DisconnectReason,
@@ -10,6 +11,7 @@ import {
 } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import P from 'pino'
+import Busboy from 'busboy'
 import QRCode from 'qrcode'
 import terminalQrcode from 'qrcode-terminal'
 
@@ -32,8 +34,10 @@ const BROADCAST_CONTACTS = (process.env.ALLOWED_BROADCAST || '')
 const CONVERSATIONS_DIR = new URL('../data/', import.meta.url)
 const CONVERSATIONS_FILE = new URL('../data/conversations.json', import.meta.url)
 const CONFLICT_RULES_FILE = new URL('../data/conflict-rules.json', import.meta.url)
+const UPLOADS_DIR = new URL('../data/uploads/', import.meta.url)
 const ADMIN_PAGE_FILE = new URL('../public/admin.html', import.meta.url)
 const LINK_PAGE_FILE = new URL('../public/link.html', import.meta.url)
+const DOCUMENTATION_PAGE_FILE = new URL('../public/documentation.html', import.meta.url)
 const CONVERSATION_STATUSES = new Set(['pendiente', 'respondida', 'urgente'])
 const DEFAULT_TAGS = []
 const QUICK_REPLIES = [
@@ -186,6 +190,75 @@ function isConversationChat(jid) {
 function getConversationPreview(text) {
   return text.length > 120 ? `${text.slice(0, 117)}...` : text
 }
+
+function getMediaTypeFromMime(mimetype = '') {
+  if (mimetype.startsWith('image/')) return 'image'
+  if (mimetype.startsWith('audio/')) return 'audio'
+  if (mimetype.startsWith('video/')) return 'video'
+  return 'document'
+}
+
+function getAttachmentSummary(messageType, fileName) {
+  switch (messageType) {
+    case 'image':
+      return fileName ? `[Imagen] ${fileName}` : '[Imagen]'
+    case 'audio':
+      return fileName ? `[Audio] ${fileName}` : '[Audio]'
+    case 'video':
+      return fileName ? `[Video] ${fileName}` : '[Video]'
+    case 'document':
+      return fileName ? `[Documento] ${fileName}` : '[Documento]'
+    default:
+      return fileName || ''
+  }
+}
+
+function sanitizeUploadFileName(fileName = 'archivo') {
+  const baseName = basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_') || 'archivo'
+  return `${randomUUID()}-${baseName}`
+}
+
+function getUploadUrl(fileName) {
+  return `/uploads/${encodeURIComponent(fileName)}`
+}
+
+function getUploadFileUrl(fileName) {
+  return new URL(`../data/uploads/${fileName}`, import.meta.url)
+}
+
+async function ensureUploadsDir() {
+  await mkdir(UPLOADS_DIR, { recursive: true })
+}
+
+function getMimeTypeFromFileName(fileName = '') {
+  const extension = extname(fileName).toLowerCase()
+  switch (extension) {
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg'
+    case '.png':
+      return 'image/png'
+    case '.gif':
+      return 'image/gif'
+    case '.webp':
+      return 'image/webp'
+    case '.mp3':
+      return 'audio/mpeg'
+    case '.ogg':
+      return 'audio/ogg'
+    case '.wav':
+      return 'audio/wav'
+    case '.mp4':
+      return 'video/mp4'
+    case '.webm':
+      return 'video/webm'
+    case '.pdf':
+      return 'application/pdf'
+    default:
+      return 'application/octet-stream'
+  }
+}
+
 
 function normalizeConversationStatus(status) {
   return CONVERSATION_STATUSES.has(status) ? status : 'pendiente'
@@ -382,16 +455,17 @@ function persistConversations() {
   return persistConversationsPromise
 }
 
-async function recordConversationMessage({ jid, name, text, direction }) {
-  if (!isConversationChat(jid) || !text) return
+async function recordConversationMessage({ jid, name, text = '', direction, messageType = 'text', mediaUrl = '', mimeType = '', fileName = '' }) {
+  if (!isConversationChat(jid) || (!text && !mediaUrl && !fileName)) return
 
   const now = getIsoTimestamp()
   const current = conversations.get(jid) || createConversationRecord(jid, now)
+  const effectiveText = text || getAttachmentSummary(messageType, fileName)
 
   current.name = name || current.name || ''
   current.firstMessageAt = current.firstMessageAt || now
   current.lastMessageAt = now
-  current.lastMessageText = text
+  current.lastMessageText = effectiveText
 
   if (direction === 'in' && current.status === 'respondida') {
     current.status = 'pendiente'
@@ -409,7 +483,11 @@ async function recordConversationMessage({ jid, name, text, direction }) {
   current.messages.push({
     direction,
     text,
-    timestamp: now
+    timestamp: now,
+    messageType,
+    mediaUrl,
+    mimeType,
+    fileName
   })
 
   current.messageCount = current.messages.length
@@ -454,6 +532,102 @@ function readRequestBody(req) {
 
     req.on('error', reject)
   })
+}
+
+async function parseMultipartForm(req) {
+  return new Promise((resolve, reject) => {
+    const busboy = Busboy({ headers: req.headers })
+    const fields = {}
+    let fileBuffer = Buffer.alloc(0)
+    let upload = null
+
+    busboy.on('field', (name, value) => {
+      fields[name] = value
+    })
+
+    busboy.on('file', (name, file, info) => {
+      const chunks = []
+      upload = {
+        fieldName: name,
+        fileName: info.filename || 'archivo',
+        mimeType: info.mimeType || 'application/octet-stream'
+      }
+
+      file.on('data', (chunk) => chunks.push(chunk))
+      file.on('end', () => {
+        fileBuffer = Buffer.concat(chunks)
+      })
+    })
+
+    busboy.on('finish', () => resolve({ fields, upload, fileBuffer }))
+    busboy.on('error', reject)
+    req.pipe(busboy)
+  })
+}
+
+async function sendUploadedMediaReply(jid, { fileBuffer, fileName, mimeType, caption = '' }) {
+  if (!activeSocket) {
+    const error = new Error('WhatsApp no esta conectado')
+    error.statusCode = 503
+    throw error
+  }
+
+  if (!fileBuffer?.length) {
+    const error = new Error('El archivo no puede estar vacio')
+    error.statusCode = 400
+    throw error
+  }
+
+  await ensureUploadsDir()
+
+  const storedFileName = sanitizeUploadFileName(fileName)
+  const uploadFileUrl = getUploadFileUrl(storedFileName)
+  await writeFile(uploadFileUrl, fileBuffer)
+
+  const messageType = getMediaTypeFromMime(mimeType)
+  const mediaUrl = getUploadUrl(storedFileName)
+  const payload = {}
+
+  if (messageType === 'image') {
+    payload.image = fileBuffer
+    if (caption.trim()) payload.caption = caption.trim()
+  } else if (messageType === 'audio') {
+    payload.audio = fileBuffer
+    payload.mimetype = mimeType
+    payload.ptt = false
+  } else if (messageType === 'video') {
+    payload.video = fileBuffer
+    if (caption.trim()) payload.caption = caption.trim()
+  } else {
+    payload.document = fileBuffer
+    payload.mimetype = mimeType
+    payload.fileName = fileName
+  }
+
+  await activeSocket.sendMessage(jid, payload)
+
+  const conversation = getConversation(jid)
+  await recordConversationMessage({
+    jid,
+    name: conversation?.name || '',
+    text: caption.trim(),
+    direction: 'out',
+    messageType,
+    mediaUrl,
+    mimeType,
+    fileName
+  })
+
+  await updateConversationMetadata(jid, {
+    status: 'respondida',
+    unreadCount: 0,
+    waitingForHuman: false,
+    escalationReason: '',
+    conflictLevel: '',
+    shouldUseNameGreeting: false
+  })
+
+  return getConversation(jid)
 }
 
 async function updateConversationMetadata(jid, updates) {
@@ -547,13 +721,35 @@ async function sendManualReply(jid, text) {
   return getConversation(jid)
 }
 
+function normalizeCsvText(value) {
+  return String(value ?? '')
+    .replace(/\r?\n|\r/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function escapeCsvValue(value) {
-  return `"${`${value ?? ''}`.replaceAll('"', '""')}"`
+  return `"${normalizeCsvText(value).replaceAll('"', '""')}"`
 }
 
 function buildConversationsCsv() {
   const rows = [
-    ['jid', 'name', 'status', 'unreadCount', 'tags', 'lastMessageAt', 'lastMessageText']
+    [
+      'jid',
+      'nombre',
+      'estado',
+      'no_leidos',
+      'esperando_humano',
+      'tema_actual',
+      'motivo_derivacion',
+      'nivel_conflicto',
+      'etiquetas',
+      'primera_actividad',
+      'ultima_actividad',
+      'ultima_entrada',
+      'ultima_salida',
+      'ultimo_mensaje'
+    ]
   ]
 
   for (const conversation of serializeConversations()) {
@@ -562,15 +758,21 @@ function buildConversationsCsv() {
       conversation.name,
       conversation.status,
       conversation.unreadCount,
-      conversation.tags.join(' | '),
-      conversation.lastMessageAt,
-      conversation.lastMessageText
+      conversation.waitingForHuman ? 'si' : 'no',
+      conversation.currentTopic || '-',
+      conversation.escalationReason || '-',
+      conversation.conflictLevel || '-',
+      conversation.tags.join(', '),
+      conversation.firstMessageAt || '-',
+      conversation.lastMessageAt || '-',
+      conversation.lastIncomingAt || '-',
+      conversation.lastOutgoingAt || '-',
+      conversation.lastMessageText || '-'
     ])
   }
 
-  return rows.map((row) => row.map(escapeCsvValue).join(',')).join('\n')
+  return '\uFEFF' + rows.map((row) => row.map(escapeCsvValue).join(';')).join('\n')
 }
-
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify(payload))
@@ -601,8 +803,24 @@ async function handleAdminRequest(req, res) {
     return
   }
 
+  if (req.method === 'GET' && requestUrl.pathname === '/documentation') {
+    const html = await readFile(DOCUMENTATION_PAGE_FILE, 'utf8')
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end(html)
+    return
+  }
+
   if (req.method === 'GET' && requestUrl.pathname === '/api/link-status') {
     sendJson(res, 200, linkState)
+    return
+  }
+
+  if (req.method === 'GET' && requestUrl.pathname.startsWith('/uploads/')) {
+    const fileName = decodeURIComponent(requestUrl.pathname.replace('/uploads/', ''))
+    const fileUrl = getUploadFileUrl(fileName)
+    const fileBuffer = await readFile(fileUrl)
+    res.writeHead(200, { 'Content-Type': getMimeTypeFromFileName(fileName) })
+    res.end(fileBuffer)
     return
   }
 
@@ -648,6 +866,26 @@ async function handleAdminRequest(req, res) {
       sendJson(res, 404, { error: 'Conversation not found' })
       return
     }
+
+    sendJson(res, 200, conversation)
+    return
+  }
+
+  if (req.method === 'POST' && requestUrl.pathname.startsWith('/api/conversations/') && requestUrl.pathname.endsWith('/reply-media')) {
+    const jid = decodeURIComponent(requestUrl.pathname.replace('/api/conversations/', '').replace('/reply-media', ''))
+    const { fields, upload, fileBuffer } = await parseMultipartForm(req)
+
+    if (!upload) {
+      sendJson(res, 400, { error: 'No se recibio ningun archivo' })
+      return
+    }
+
+    const conversation = await sendUploadedMediaReply(jid, {
+      fileBuffer,
+      fileName: upload.fileName,
+      mimeType: upload.mimeType,
+      caption: `${fields.caption || ''}`
+    })
 
     sendJson(res, 200, conversation)
     return
