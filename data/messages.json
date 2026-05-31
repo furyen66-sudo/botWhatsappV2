@@ -10,7 +10,7 @@
     "antropometria": "La antropometría de 5 componentes es una evaluación completa de la composición corporal.\n\nPermite conocer:\n\n✔️ Masa grasa\n✔️ Masa muscular\n✔️ Masa ósea\n✔️ Masa residual\n✔️ Masa de la piel\n\nIncluye medición y explicación de los resultados.\n\n💰 Valor: $45.000\n📍 Atención presencial.\n\n¿Querés coordinar la antropometría? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊",
     "antropometriaVsInbody": "Sí, ambas evalúan composición corporal.\n\nLa antropometría utiliza mediciones estandarizadas de pliegues y perímetros corporales, permitiendo un análisis detallado y seguimiento preciso de la composición corporal.\n\nSi querés coordinarla, decime qué disponibilidad horaria tenés y te paso los horarios disponibles 😊",
     "antropometriaPlan": "La antropometría incluye la evaluación y explicación de los resultados.\n\nSi además necesitás un plan alimentario personalizado, corresponde realizar una consulta nutricional.\n\n¿Te ayudamos a coordinar la consulta? Decime qué disponibilidad horaria tenés 😊",
-    "neurologia": "Perfecto 😊\n\nPodemos coordinar tu turno.\n\n📍 Atención presencial en Clínica El Castaño – Consultorios externos (San Luis y Estados Unidos, San Juan).\n\nPara confirmar la reserva del horario se solicita una seña de $15.000 mediante transferencia.\n\nUna vez enviada la seña, el turno queda confirmado.\n\nDecime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊",
+    "neurologia": "El acompañamiento nutricional en neurología busca adaptar la alimentación a las necesidades de cada paciente, considerando el diagnóstico, tratamiento médico y objetivos terapéuticos.\n\nEl abordaje es totalmente personalizado.",
     "valores": "💰 Valores actuales:\n\n• Consulta o control:\n  $30.000 particular\n  $15.000 con obra social\n\n• Primera consulta + plan alimentario:\n  $60.000 particular\n  $30.000 con obra social\n\n• Antropometría de 5 componentes:\n  $45.000 (solo particular)\n\n¿Querés coordinar tu turno? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊",
     "ubicacion": "📍 Clínica El Castaño – Consultorios externos\n\nSan Luis y Estados Unidos\nSan Juan, Argentina\n\nAtención exclusivamente presencial.\n\n¿Querés coordinar tu turno? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊",
     "hablarConCelia": "Perfecto 😊\n\nDejanos tu nombre y tu consulta, y Celia te responderá a la brevedad.",
@@ -24,7 +24,7 @@
     "waitingHumanFirstOffer": "Si querés, mientras esperás atención humana, también podemos seguir desde el menú 😊\nTe comparto nuevamente las opciones disponibles.",
     "waitingHumanRepeat": "Si necesitás algo más, podés elegir una opción del menú o dejarnos tu consulta y la revisamos 😊",
     "generic": "Recibimos tu mensaje 😊 Lo dejamos asentado y te respondemos a la brevedad por este medio 💚",
-    "coordinandoTurno": "¡Genial! 😊 Verifico la disponibilidad de agenda y te confirmo el horario en un ratito.\n\nSi querés ir agilizando la reserva, podés enviarnos el comprobante de la seña ($15.000 por transferencia al alias *cefsoler* – Celia Fatima Soler).\n\nUna vez verificado el pago, el turno queda confirmado 💚",
+    "coordinandoTurno": "¡Genial! 😊 Verifico la disponibilidad de agenda y te confirmo el horario en un ratito.",
     "comprobanteRecibido": "¡Recibimos el comprobante! 🙌 Verificamos el pago y te confirmamos el turno en breve."
   },
   "commands": {

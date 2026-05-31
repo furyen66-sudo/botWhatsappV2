@@ -788,6 +788,7 @@
             <option value="received">Comprobante recibido</option>
             <option value="verified">Turno confirmado</option>
           </select>
+          <button id="confirmTurnButton" class="button" type="button">Confirmar turno y cerrar</button>
           <button id="markRead" class="button secondary" type="button">Marcar leída</button>
           <button id="saveMetadata" class="button" type="button">Guardar cambios</button>
         </div>
@@ -861,6 +862,7 @@
     const calendarAvailabilityEl = document.getElementById('calendarAvailability')
     const modalTagsEl = document.getElementById('modalTags')
     const modalNotesEl = document.getElementById('modalNotes')
+    const confirmTurnButtonEl = document.getElementById('confirmTurnButton')
     const markReadEl = document.getElementById('markRead')
     const saveMetadataEl = document.getElementById('saveMetadata')
     const quickReplySelectEl = document.getElementById('quickReplySelect')
@@ -1160,6 +1162,12 @@
       })
     }
 
+    async function confirmTurn(jid) {
+      return apiJson(`/api/conversations/${encodeURIComponent(jid)}/confirm-turno`, {
+        method: 'POST'
+      })
+    }
+
     async function sendMediaReply(jid, file, caption) {
       const formData = new FormData()
       formData.append('file', file)
@@ -1420,6 +1428,25 @@
       })
       await loadConversations()
       await openConversation(activeConversationJid)
+    })
+
+    confirmTurnButtonEl.addEventListener('click', async () => {
+      if (!activeConversationJid) return
+      confirmTurnButtonEl.disabled = true
+      const previousLabel = confirmTurnButtonEl.textContent
+      confirmTurnButtonEl.textContent = 'Confirmando...'
+
+      try {
+        const payload = await confirmTurn(activeConversationJid)
+        await loadConversations()
+        closeModal()
+        alert(payload.message || 'Turno confirmado correctamente.')
+      } catch (error) {
+        alert(error.message || 'No se pudo confirmar el turno')
+      } finally {
+        confirmTurnButtonEl.disabled = false
+        confirmTurnButtonEl.textContent = previousLabel
+      }
     })
 
     markReadEl.addEventListener('click', async () => {

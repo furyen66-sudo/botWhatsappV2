@@ -1,12 +1,11 @@
 {
-  "amenaza": {
-    "reason": "Amenaza de denuncia o acusacion",
+  "leve": {
+    "reason": "Lenguaje inapropiado o groseria",
     "phrases": [
-      "te voy a denunciar",
-      "lo voy a denunciar",
-      "te voy a acusar",
-      "los voy a denunciar",
-      "los voy a acusar"
+      "puto",
+      "pito",
+      "mierda",
+      "boludo"
     ]
   },
   "agresion": {
@@ -21,13 +20,14 @@
       "no me rompas"
     ]
   },
-  "leve": {
-    "reason": "Lenguaje inapropiado o groseria",
+  "amenaza": {
+    "reason": "Amenaza de denuncia o acusacion",
     "phrases": [
-      "puto",
-      "pito",
-      "mierda",
-      "boludo"
+      "te voy a denunciar",
+      "lo voy a denunciar",
+      "te voy a acusar",
+      "los voy a denunciar",
+      "los voy a acusar"
     ]
   }
 }

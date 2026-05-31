@@ -1283,6 +1283,81 @@ async function applyConversationMetadataUpdate(jid, updates) {
   return getConversation(jid)
 }
 
+async function confirmConversationTurn(jid) {
+  const conversation = getConversation(jid)
+  if (!conversation) {
+    const error = new Error('Conversation not found')
+    error.statusCode = 404
+    throw error
+  }
+
+  if (!hasSelectedCalendarSlot(conversation)) {
+    const error = new Error('Primero el contacto tiene que elegir un horario para poder confirmarlo.')
+    error.statusCode = 400
+    throw error
+  }
+
+  if (!isCalendarConfigured()) {
+    const error = new Error('Google Calendar no esta configurado. Completa GOOGLE_CALENDAR_CLIENT_EMAIL, GOOGLE_CALENDAR_PRIVATE_KEY y GOOGLE_CALENDAR_ID en .env.')
+    error.statusCode = 400
+    throw error
+  }
+
+  if (conversation.calendarEventId) {
+    const updatedConversation = await updateConversationMetadata(jid, {
+      paymentReceiptStatus: 'verified',
+      status: 'respondida',
+      unreadCount: 0,
+      waitingForHuman: false,
+      escalationReason: '',
+      conflictLevel: ''
+    })
+    return {
+      conversation: updatedConversation,
+      eventAction: 'already_confirmed',
+      message: 'El turno ya estaba confirmado y agendado.'
+    }
+  }
+
+  await updateConversationMetadata(jid, {
+    paymentReceiptStatus: 'verified',
+    status: 'respondida',
+    unreadCount: 0,
+    waitingForHuman: false,
+    escalationReason: '',
+    conflictLevel: ''
+  })
+
+  const result = await maybeCreateCalendarEventAfterVerification(jid)
+  if (!result.ok) {
+    const reasonMessages = {
+      slot_unavailable: 'El horario elegido ya no esta disponible. Pedile al contacto que elija otro turno.',
+      auth_failed: 'No se pudo autenticar con Google Calendar. Revisa las credenciales y permisos.',
+      not_configured: 'Google Calendar no esta configurado correctamente.',
+      not_ready: 'No se pudo confirmar el turno con la informacion actual.',
+      calendar_not_found: result.errorMessage || 'Google Calendar no encontro el calendario configurado.',
+      calendar_error: result.errorMessage || 'No se pudo crear el evento en Google Calendar.'
+    }
+    const error = new Error(reasonMessages[result.reason] || 'No se pudo crear el evento en Google Calendar.')
+    error.statusCode = 400
+    throw error
+  }
+
+  const updatedConversation = await updateConversationMetadata(jid, {
+    status: 'respondida',
+    unreadCount: 0,
+    waitingForHuman: false,
+    escalationReason: '',
+    conflictLevel: ''
+  })
+
+  return {
+    conversation: updatedConversation,
+    eventAction: 'created',
+    message: 'Turno confirmado, mensaje enviado y evento agendado en Google Calendar.'
+  }
+}
+
 let googleCalendarClient = null
 let googleCalendarClientPromise = null
 
@@ -1441,12 +1516,17 @@ function buildCalendarOfferText(slots) {
 }
 
 function extractInsuranceCandidate(text) {
-  const parts = text
+  const rawParts = text
     .split(/[,\n]/)
     .map((part) => part.trim())
     .filter(Boolean)
-  if (parts.length < 2) return ''
-  return normalizeIncomingText(parts[parts.length - 1])
+  if (rawParts.length >= 2) {
+    return normalizeIncomingText(rawParts[rawParts.length - 1])
+  }
+
+  const words = normalizeIncomingText(text).split(' ').filter(Boolean)
+  if (words.length < 2) return ''
+  return words[words.length - 1]
 }
 
 function detectCoveredInsurance(text) {
@@ -1534,27 +1614,35 @@ async function createCalendarEventForConversation(jid) {
     return { ok: false, reason: 'auth_failed' }
   }
 
-  const slotAvailable = await isCalendarSlotStillAvailable(conversation.selectedCalendarSlotStart, conversation.selectedCalendarSlotEnd)
-  if (!slotAvailable) {
+  try {
+    const slotAvailable = await isCalendarSlotStillAvailable(conversation.selectedCalendarSlotStart, conversation.selectedCalendarSlotEnd)
+    if (!slotAvailable) {
+      await updateConversationMetadata(jid, {
+        selectedCalendarSlotStart: '',
+        selectedCalendarSlotEnd: '',
+        offeredCalendarSlots: []
+      })
+      return { ok: false, reason: 'slot_unavailable' }
+    }
+
+    const response = await client.events.insert({
+      calendarId: GOOGLE_CALENDAR_ID,
+      requestBody: buildCalendarEventPayload(conversation)
+    })
+
     await updateConversationMetadata(jid, {
-      selectedCalendarSlotStart: '',
-      selectedCalendarSlotEnd: '',
+      calendarEventId: response.data.id || '',
       offeredCalendarSlots: []
     })
-    return { ok: false, reason: 'slot_unavailable' }
+
+    return { ok: true, eventId: response.data.id || '' }
+  } catch (error) {
+    console.error('No se pudo crear el evento en Google Calendar:', error)
+    if (error?.code === 404) {
+      return { ok: false, reason: 'calendar_not_found', errorMessage: 'Google Calendar devolvio 404. Revisa GOOGLE_CALENDAR_ID y que la Service Account tenga acceso al calendario correcto.' }
+    }
+    return { ok: false, reason: 'calendar_error', errorMessage: error?.message || 'Error desconocido creando el evento en Google Calendar.' }
   }
-
-  const response = await client.events.insert({
-    calendarId: GOOGLE_CALENDAR_ID,
-    requestBody: buildCalendarEventPayload(conversation)
-  })
-
-  await updateConversationMetadata(jid, {
-    calendarEventId: response.data.id || '',
-    offeredCalendarSlots: []
-  })
-
-  return { ok: true, eventId: response.data.id || '' }
 }
 
 async function cancelCalendarEvent(conversation) {
@@ -1989,6 +2077,13 @@ async function handleAdminRequest(req, res) {
     return
   }
 
+  if (req.method === 'POST' && requestUrl.pathname.startsWith('/api/conversations/') && requestUrl.pathname.endsWith('/confirm-turno')) {
+    const jid = decodeURIComponent(requestUrl.pathname.replace('/api/conversations/', '').replace('/confirm-turno', ''))
+    const payload = await confirmConversationTurn(jid)
+    sendJson(res, 200, payload)
+    return
+  }
+
   if (req.method === 'POST' && requestUrl.pathname.startsWith('/api/conversations/') && requestUrl.pathname.endsWith('/reply')) {
     const jid = decodeURIComponent(requestUrl.pathname.replace('/api/conversations/', '').replace('/reply', ''))
     const rawBody = await readRequestBody(req)
@@ -2118,6 +2213,21 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
   }
 
   if (COORDINATING_TOPICS.has(conversation.currentTopic)) {
+    if (hasSelectedCalendarSlot(conversation) && conversation.paymentReceiptStatus === 'verified') {
+      await sendText(sock, sender, `Tu turno ya esta confirmado para ${formatSlotDateTime(conversation.selectedCalendarSlotStart)} 💚`, name, { includeGreeting: false })
+      return true
+    }
+
+    if (hasSelectedCalendarSlot(conversation) && conversation.paymentReceiptStatus === 'received') {
+      await sendText(sock, sender, 'Ya tenemos tu comprobante 🙌 Apenas verifiquemos el pago, te confirmamos el turno por este medio.', name, { includeGreeting: false })
+      return true
+    }
+
+    if (hasSelectedCalendarSlot(conversation) && conversation.paymentReceiptStatus === 'requested') {
+      await sendText(sock, sender, `Ya reservamos provisoriamente tu horario para ${formatSlotDateTime(conversation.selectedCalendarSlotStart)}. Cuando quieras, envianos el comprobante de la seña y seguimos con la confirmacion.`, name, { includeGreeting: false })
+      return true
+    }
+
     if (isCancellationRequest(text) && (conversation.calendarEventId || hasSelectedCalendarSlot(conversation))) {
       await cancelCalendarEvent(conversation)
       await applyConversationMetadataUpdate(sender, {
@@ -2165,10 +2275,20 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
 
       if (refreshedConversation?.paymentReceiptStatus !== 'received' && refreshedConversation?.paymentReceiptStatus !== 'verified') {
         await setConversationFlow(sender, { paymentReceiptStatus: 'requested' })
-        await sendText(sock, sender, botMessages.topicFollowups.coordinandoTurno, name, { includeGreeting: false })
+        await sendText(sock, sender, botMessages.intents.reservaTurno, name, { includeGreeting: false })
       } else if (refreshedConversation?.paymentReceiptStatus === 'received') {
         await sendText(sock, sender, 'Ya tenemos tu comprobante 🙌 Apenas verifiquemos el pago, confirmamos el turno y lo agendamos automaticamente.', name, { includeGreeting: false })
       }
+      return true
+    }
+
+    if (conversation.offeredCalendarSlots?.length > 0 && conversation.paymentReceiptStatus === 'received') {
+      await sendText(sock, sender, 'Ya tenemos tu comprobante 🙌 Ahora solo falta que elijas una de las opciones que te compartimos para confirmar el turno.', name, { includeGreeting: false })
+      return true
+    }
+
+    if (conversation.offeredCalendarSlots?.length > 0 && conversation.paymentReceiptStatus === 'verified') {
+      await sendText(sock, sender, 'Tu pago ya esta verificado. Elegi una de las opciones que te compartimos y lo dejamos confirmado.', name, { includeGreeting: false })
       return true
     }
 
