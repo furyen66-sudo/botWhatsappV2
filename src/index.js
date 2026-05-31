@@ -52,7 +52,7 @@ const CONFIG_PAGE_FILE = new URL('../public/config.html', import.meta.url)
 const CONVERSATION_STATUSES = new Set(['pendiente', 'respondida', 'urgente'])
 const PAYMENT_RECEIPT_STATUSES = new Set(['', 'requested', 'received', 'verified'])
 const SCHEDULING_SELECTION_TEXTS = new Set(['1', '2', '3'])
-const TURN_BOOKING_STAGES = new Set(['', 'awaiting-insurance', 'awaiting-objective'])
+const TURN_BOOKING_STAGES = new Set(['', 'awaiting-insurance', 'awaiting-name-after-coverage', 'awaiting-objective'])
 const COVERED_INSURANCE_NAMES = [
   'amffa',
   'avalian',
@@ -99,6 +99,20 @@ const COORDINATING_TOPICS = new Set([
   'diabetes',
   'descenso-peso',
   'reserva-turno'
+])
+const BOOKING_ENTRY_TOPICS = new Set([
+  'turnos',
+  'obras-sociales',
+  'consulta-nutricional',
+  'nutricion-deportiva',
+  'antropometria',
+  'antropometria-vs-inbody',
+  'antropometria-plan',
+  'neurologia',
+  'valores',
+  'ubicacion',
+  'diabetes',
+  'descenso-peso'
 ])
 const DEFAULT_TAGS = []
 const CONFLICT_LEVELS = new Set(['leve', 'agresion', 'amenaza'])
@@ -407,6 +421,13 @@ const DEFAULT_BOT_MESSAGES = {
       'Si querés ir agilizando la reserva, podés enviarnos el comprobante de la seña ($15.000 por transferencia al alias *cefsoler* – Celia Fatima Soler).',
       '',
       'Una vez verificado el pago, el turno queda confirmado 💚'
+    ].join('\n'),
+    bookingAfterCoverage: [
+      'Para coordinar un turno necesito que me indiques:',
+      '',
+      '👉 Nombre y apellido',
+      '',
+      'Una vez recibida la información, te voy a pedir el objetivo de la consulta para seguir con la coordinación.'
     ].join('\n'),
     comprobanteRecibido: '¡Recibimos el comprobante! 🙌 Verificamos el pago y te confirmamos el turno en breve.'
   },
@@ -889,6 +910,7 @@ function normalizeBotMessages(raw) {
       waitingHumanRepeat: pickString(topicFollowups.waitingHumanRepeat, DEFAULT_BOT_MESSAGES.topicFollowups.waitingHumanRepeat),
       generic: pickString(topicFollowups.generic, DEFAULT_BOT_MESSAGES.topicFollowups.generic),
       coordinandoTurno: pickString(topicFollowups.coordinandoTurno, DEFAULT_BOT_MESSAGES.topicFollowups.coordinandoTurno),
+      bookingAfterCoverage: pickString(topicFollowups.bookingAfterCoverage, DEFAULT_BOT_MESSAGES.topicFollowups.bookingAfterCoverage),
       comprobanteRecibido: pickString(topicFollowups.comprobanteRecibido, DEFAULT_BOT_MESSAGES.topicFollowups.comprobanteRecibido)
     },
     commands: {
@@ -1564,6 +1586,70 @@ function detectCoordinatingTopicFromObjective(text) {
   return 'turnos'
 }
 
+function shouldHandleBookingFlow(conversation) {
+  return Boolean(
+    conversation &&
+    BOOKING_ENTRY_TOPICS.has(conversation.currentTopic) &&
+    !conversation.offeredCalendarSlots?.length &&
+    !hasSelectedCalendarSlot(conversation)
+  )
+}
+
+function looksLikeInsuranceFollowUp(text) {
+  return Boolean(
+    detectCoveredInsurance(text) ||
+    hasParticularCoverage(text) ||
+    includesAny(text, ['dni', 'afiliado', 'afiliada', 'token'])
+  )
+}
+
+async function startBookingFlowFromTopic(sock, sender, text, name, conversation) {
+  if (!conversation || conversation.turnBookingStage) {
+    return false
+  }
+
+  if (!shouldTreatAsTopicMessage(text)) {
+    return false
+  }
+
+  if (conversation.currentTopic === 'obras-sociales' && looksLikeInsuranceFollowUp(text)) {
+    await setConversationFlow(sender, {
+      turnBookingStage: 'awaiting-name-after-coverage',
+      paymentReceiptStatus: '',
+      offeredCalendarSlots: [],
+      selectedCalendarSlotStart: '',
+      selectedCalendarSlotEnd: '',
+      calendarEventId: ''
+    })
+    await sendText(sock, sender, botMessages.topicFollowups.bookingAfterCoverage, name, { includeGreeting: false })
+    return true
+  }
+
+  if (conversation.currentTopic === 'obras-sociales') {
+    await setConversationFlow(sender, {
+      turnBookingStage: 'awaiting-name-after-coverage',
+      paymentReceiptStatus: '',
+      offeredCalendarSlots: [],
+      selectedCalendarSlotStart: '',
+      selectedCalendarSlotEnd: '',
+      calendarEventId: ''
+    })
+    await sendText(sock, sender, botMessages.topicFollowups.bookingAfterCoverage, name, { includeGreeting: false })
+    return true
+  }
+
+  await setConversationFlow(sender, {
+    turnBookingStage: 'awaiting-insurance',
+    paymentReceiptStatus: '',
+    offeredCalendarSlots: [],
+    selectedCalendarSlotStart: '',
+    selectedCalendarSlotEnd: '',
+    calendarEventId: ''
+  })
+  await sendText(sock, sender, botMessages.intents.turnos, name, { includeGreeting: false })
+  return true
+}
+
 async function isCalendarSlotStillAvailable(start, end) {
   const client = await getCalendarClient()
   if (!client) return false
@@ -1693,6 +1779,17 @@ async function sendAvailableCalendarSlots(sock, sender, name, options = {}) {
 async function handleTurnosDetails(sock, sender, text, name) {
   const conversation = getConversation(sender)
   const stage = conversation?.turnBookingStage || 'awaiting-insurance'
+
+  if (stage === 'awaiting-name-after-coverage') {
+    if (!shouldTreatAsTopicMessage(text)) {
+      await sendText(sock, sender, botMessages.topicFollowups.bookingAfterCoverage, name, { includeGreeting: false })
+      return true
+    }
+
+    await setConversationFlow(sender, { turnBookingStage: 'awaiting-objective' })
+    await sendText(sock, sender, 'Perfecto 😊 Ahora decime cuál es el objetivo de la consulta para seguir con la coordinación del turno.', name, { includeGreeting: false })
+    return true
+  }
 
   if (stage === 'awaiting-objective') {
     if (!seemsToContainObjective(text)) {
@@ -2165,9 +2262,11 @@ async function sendMenu(sock, sender, name = '') {
     escalationReason: '',
     conflictLevel: '',
     turnBookingStage: '',
+    paymentReceiptStatus: '',
     offeredCalendarSlots: [],
     selectedCalendarSlotStart: '',
     selectedCalendarSlotEnd: '',
+    calendarEventId: '',
     shouldUseNameGreeting: false
   })
 }
@@ -2260,9 +2359,8 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
         selectedCalendarSlotEnd: selectedOption.end,
         offeredCalendarSlots: []
       })
-      await sendText(sock, sender, `Reserve provisoriamente la opcion ${selectedOption.id}: ${getSlotOptionLabel(selectedOption)}.`, name, { includeGreeting: false })
 
-      const refreshedConversation = getConversation(sender)
+      let refreshedConversation = getConversation(sender)
       if (refreshedConversation?.paymentReceiptStatus === 'verified') {
         const result = await maybeCreateCalendarEventAfterVerification(sender)
         if (result.ok) return true
@@ -2274,10 +2372,12 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
       }
 
       if (refreshedConversation?.paymentReceiptStatus !== 'received' && refreshedConversation?.paymentReceiptStatus !== 'verified') {
-        await setConversationFlow(sender, { paymentReceiptStatus: 'requested' })
-        await sendText(sock, sender, botMessages.intents.reservaTurno, name, { includeGreeting: false })
+        refreshedConversation = await updateConversationMetadata(sender, { paymentReceiptStatus: 'requested' })
+        await sendText(sock, sender, `Reserve provisoriamente la opcion ${selectedOption.id}: ${getSlotOptionLabel(selectedOption)}.\n\n${botMessages.intents.reservaTurno}`, name, { includeGreeting: false })
       } else if (refreshedConversation?.paymentReceiptStatus === 'received') {
-        await sendText(sock, sender, 'Ya tenemos tu comprobante 🙌 Apenas verifiquemos el pago, confirmamos el turno y lo agendamos automaticamente.', name, { includeGreeting: false })
+        await sendText(sock, sender, `Reserve provisoriamente la opcion ${selectedOption.id}: ${getSlotOptionLabel(selectedOption)}.\n\nYa tenemos tu comprobante 🙌 Apenas verifiquemos el pago, confirmamos el turno y lo agendamos automaticamente.`, name, { includeGreeting: false })
+      } else {
+        await sendText(sock, sender, `Reserve provisoriamente la opcion ${selectedOption.id}: ${getSlotOptionLabel(selectedOption)}.`, name, { includeGreeting: false })
       }
       return true
     }
@@ -2318,8 +2418,12 @@ async function handleCommand(sock, sender, text, name) {
     return true
   }
 
-  if (conversation?.currentTopic === 'turnos' && !conversation.offeredCalendarSlots?.length && !hasSelectedCalendarSlot(conversation)) {
-    if (await handleTurnosDetails(sock, sender, text, name)) {
+  if (shouldHandleBookingFlow(conversation)) {
+    if (conversation?.turnBookingStage || conversation?.currentTopic === 'turnos') {
+      if (await handleTurnosDetails(sock, sender, text, name)) {
+        return true
+      }
+    } else if (await startBookingFlowFromTopic(sock, sender, text, name, conversation)) {
       return true
     }
   }
@@ -2414,6 +2518,13 @@ async function handleCommand(sock, sender, text, name) {
       currentTopic: dispatch.topic,
       waitingForHuman: false,
       turnBookingStage: dispatch.topic === 'turnos' ? 'awaiting-insurance' : ''
+    }
+    if (dispatch.topic === 'turnos') {
+      flow.paymentReceiptStatus = ''
+      flow.offeredCalendarSlots = []
+      flow.selectedCalendarSlotStart = ''
+      flow.selectedCalendarSlotEnd = ''
+      flow.calendarEventId = ''
     }
     if (dispatch.requestsReceipt && conversation?.paymentReceiptStatus !== 'received' && conversation?.paymentReceiptStatus !== 'verified') {
       flow.paymentReceiptStatus = 'requested'

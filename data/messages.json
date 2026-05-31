@@ -24,7 +24,8 @@
     "waitingHumanFirstOffer": "Si querés, mientras esperás atención humana, también podemos seguir desde el menú 😊\nTe comparto nuevamente las opciones disponibles.",
     "waitingHumanRepeat": "Si necesitás algo más, podés elegir una opción del menú o dejarnos tu consulta y la revisamos 😊",
     "generic": "Recibimos tu mensaje 😊 Lo dejamos asentado y te respondemos a la brevedad por este medio 💚",
-    "coordinandoTurno": "¡Genial! 😊 Verifico la disponibilidad de agenda y te confirmo el horario en un ratito.",
+    "coordinandoTurno": "¡Genial! 😊 Verifico la disponibilidad de agenda y te envio los horarios disponibles a continuación.",
+    "bookingAfterCoverage": "Para coordinar un turno necesito que me indiques:\n\n👉 Nombre y apellido\n\nUna vez recibida la información, te voy a pedir el objetivo de la consulta para seguir con la coordinación.",
     "comprobanteRecibido": "¡Recibimos el comprobante! 🙌 Verificamos el pago y te confirmamos el turno en breve."
   },
   "commands": {
