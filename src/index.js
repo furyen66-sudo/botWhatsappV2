@@ -1468,7 +1468,7 @@ function hasParticularCoverage(text) {
 }
 
 function seemsToContainTurnRequestDetails(text) {
-  return text.includes(',') || text.split(' ').length >= 4
+  return text.includes(',') || text.split(' ').length >= 4 || Boolean(hasParticularCoverage(text) || detectCoveredInsurance(text))
 }
 
 function seemsToContainObjective(text) {
@@ -1615,10 +1615,8 @@ async function handleTurnosDetails(sock, sender, text, name) {
     const nextTopic = detectCoordinatingTopicFromObjective(text)
     await setConversationFlow(sender, {
       currentTopic: nextTopic,
-      turnBookingStage: '',
-      paymentReceiptStatus: 'requested'
+      turnBookingStage: ''
     })
-    await sendText(sock, sender, botMessages.topicFollowups.coordinandoTurno, name, { includeGreeting: false })
     await sendAvailableCalendarSlots(sock, sender, name)
     return true
   }
@@ -2072,6 +2070,9 @@ async function sendMenu(sock, sender, name = '') {
     escalationReason: '',
     conflictLevel: '',
     turnBookingStage: '',
+    offeredCalendarSlots: [],
+    selectedCalendarSlotStart: '',
+    selectedCalendarSlotEnd: '',
     shouldUseNameGreeting: false
   })
 }
@@ -2164,7 +2165,7 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
 
       if (refreshedConversation?.paymentReceiptStatus !== 'received' && refreshedConversation?.paymentReceiptStatus !== 'verified') {
         await setConversationFlow(sender, { paymentReceiptStatus: 'requested' })
-        await sendText(sock, sender, botMessages.intents.reservaTurno, name, { includeGreeting: false })
+        await sendText(sock, sender, botMessages.topicFollowups.coordinandoTurno, name, { includeGreeting: false })
       } else if (refreshedConversation?.paymentReceiptStatus === 'received') {
         await sendText(sock, sender, 'Ya tenemos tu comprobante 🙌 Apenas verifiquemos el pago, confirmamos el turno y lo agendamos automaticamente.', name, { includeGreeting: false })
       }
@@ -2191,6 +2192,11 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
 
 async function handleCommand(sock, sender, text, name) {
   const conversation = getConversation(sender)
+
+  if (isGreeting(text) || text === 'menu') {
+    await sendMenu(sock, sender, name)
+    return true
+  }
 
   if (conversation?.currentTopic === 'turnos' && !conversation.offeredCalendarSlots?.length && !hasSelectedCalendarSlot(conversation)) {
     if (await handleTurnosDetails(sock, sender, text, name)) {
@@ -2278,11 +2284,6 @@ async function handleCommand(sock, sender, text, name) {
       turnBookingStage: '',
       shouldUseNameGreeting: false
     })
-    return true
-  }
-
-  if (text === 'menu') {
-    await sendMenu(sock, sender, name)
     return true
   }
 
