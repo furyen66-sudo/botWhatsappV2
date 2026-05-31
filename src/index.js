@@ -206,7 +206,9 @@ const DEFAULT_BOT_MESSAGES = {
       '✔️ Plan alimentario personalizado (en primera consulta)',
       '✔️ Educación alimentaria y estrategias prácticas',
       '',
-      'Cada plan se adapta a las necesidades y objetivos de cada paciente.'
+      'Cada plan se adapta a las necesidades y objetivos de cada paciente.',
+      '',
+      '¿Querés coordinar tu consulta? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊'
     ].join('\n'),
     nutricionDeportiva: [
       'Trabajo con deportistas de distintos niveles y disciplinas.',
@@ -218,7 +220,9 @@ const DEFAULT_BOT_MESSAGES = {
       '✔️ Alimentación adaptada a entrenamientos y competencias',
       '✔️ Recuperación y composición corporal',
       '',
-      'También puede complementarse con antropometría de 5 componentes.'
+      'También puede complementarse con antropometría de 5 componentes.',
+      '',
+      '¿Querés coordinar tu turno? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊'
     ].join('\n'),
     antropometria: [
       'La antropometría de 5 componentes es una evaluación completa de la composición corporal.',
@@ -234,22 +238,36 @@ const DEFAULT_BOT_MESSAGES = {
       'Incluye medición y explicación de los resultados.',
       '',
       '💰 Valor: $45.000',
-      '📍 Atención presencial.'
+      '📍 Atención presencial.',
+      '',
+      '¿Querés coordinar la antropometría? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊'
     ].join('\n'),
     antropometriaVsInbody: [
       'Sí, ambas evalúan composición corporal.',
       '',
-      'La antropometría utiliza mediciones estandarizadas de pliegues y perímetros corporales, permitiendo un análisis detallado y seguimiento preciso de la composición corporal.'
+      'La antropometría utiliza mediciones estandarizadas de pliegues y perímetros corporales, permitiendo un análisis detallado y seguimiento preciso de la composición corporal.',
+      '',
+      'Si querés coordinarla, decime qué disponibilidad horaria tenés y te paso los horarios disponibles 😊'
     ].join('\n'),
     antropometriaPlan: [
       'La antropometría incluye la evaluación y explicación de los resultados.',
       '',
-      'Si además necesitás un plan alimentario personalizado, corresponde realizar una consulta nutricional.'
+      'Si además necesitás un plan alimentario personalizado, corresponde realizar una consulta nutricional.',
+      '',
+      '¿Te ayudamos a coordinar la consulta? Decime qué disponibilidad horaria tenés 😊'
     ].join('\n'),
     neurologia: [
-      'El acompañamiento nutricional en neurología busca adaptar la alimentación a las necesidades de cada paciente, considerando el diagnóstico, tratamiento médico y objetivos terapéuticos.',
+      'Perfecto 😊',
       '',
-      'El abordaje es totalmente personalizado.'
+      'Podemos coordinar tu turno.',
+      '',
+      '📍 Atención presencial en Clínica El Castaño – Consultorios externos (San Luis y Estados Unidos, San Juan).',
+      '',
+      'Para confirmar la reserva del horario se solicita una seña de $15.000 mediante transferencia.',
+      '',
+      'Una vez enviada la seña, el turno queda confirmado.',
+      '',
+      'Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊'
     ].join('\n'),
     valores: [
       '💰 Valores actuales:',
@@ -263,7 +281,9 @@ const DEFAULT_BOT_MESSAGES = {
       '  $30.000 con obra social',
       '',
       '• Antropometría de 5 componentes:',
-      '  $45.000 (solo particular)'
+      '  $45.000 (solo particular)',
+      '',
+      '¿Querés coordinar tu turno? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊'
     ].join('\n'),
     ubicacion: [
       '📍 Clínica El Castaño – Consultorios externos',
@@ -271,7 +291,9 @@ const DEFAULT_BOT_MESSAGES = {
       'San Luis y Estados Unidos',
       'San Juan, Argentina',
       '',
-      'Atención exclusivamente presencial.'
+      'Atención exclusivamente presencial.',
+      '',
+      '¿Querés coordinar tu turno? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊'
     ].join('\n'),
     hablarConCelia: [
       'Perfecto 😊',
@@ -294,12 +316,16 @@ const DEFAULT_BOT_MESSAGES = {
     diabetes: [
       'La alimentación cumple un papel fundamental en el control glucémico.',
       '',
-      'En consulta se trabaja de manera personalizada, teniendo en cuenta tratamiento, medicación, hábitos y objetivos.'
+      'En consulta se trabaja de manera personalizada, teniendo en cuenta tratamiento, medicación, hábitos y objetivos.',
+      '',
+      '¿Querés coordinar tu consulta? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊'
     ].join('\n'),
     descensoPeso: [
       'El objetivo es lograr un descenso de peso saludable y sostenible.',
       '',
-      'La consulta permite identificar hábitos, obstáculos y estrategias para construir un plan adaptado a tu realidad.'
+      'La consulta permite identificar hábitos, obstáculos y estrategias para construir un plan adaptado a tu realidad.',
+      '',
+      '¿Querés coordinar tu consulta? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊'
     ].join('\n')
   },
   humanHandoff: [
