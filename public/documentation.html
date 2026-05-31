@@ -677,17 +677,17 @@
 
     <section id="bot" class="section">
       <h2>19. Flujo del bot automático</h2>
-      <p>Cuando llega un mensaje desde WhatsApp, el sistema lo procesa así:</p>
+      <p>El bot está configurado para el consultorio de la Lic. Celia Soler, Nutricionista. Cuando llega un mensaje desde WhatsApp, el sistema lo procesa así:</p>
       <ol>
         <li>Lo guarda en el historial como mensaje entrante y actualiza la conversación.</li>
         <li>Si nunca antes habló con ese contacto, le envía el menú principal y termina.</li>
         <li>Detecta si el texto contiene insultos, agresiones o amenazas. Si los detecta, deriva al humano con el motivo y el nivel correspondiente.</li>
         <li>Detecta comandos especiales (ver sección 20).</li>
-        <li>Detecta intenciones del menú (sacar turno, cambiar turno, cancelar, dirección, atención online, primera consulta, hablar con humano).</li>
-        <li>Si la conversación ya tenía un tema en curso, intenta responder dentro de ese tema.</li>
-        <li>Si todo lo anterior falla, responde el saludo del menú si el texto es un saludo, o el mensaje por defecto definido en <code>DEFAULT_REPLY</code>.</li>
+        <li>Detecta intenciones del menú (turnos, obras sociales, consulta nutricional, nutrición deportiva, antropometría, neurología, valores, ubicación, hablar con Celia) y sub-intenciones por palabras clave (reserva del turno, política de inasistencia, antropometría vs InBody, diabetes, descenso de peso, etc.).</li>
+        <li>Si la conversación ya tenía un tema en curso, envía un acuse genérico para que el operador retome.</li>
+        <li>Si todo lo anterior falla y el texto es un saludo, vuelve a mostrar el menú; si no, responde con el mensaje por defecto definido en <code>DEFAULT_REPLY</code>.</li>
       </ol>
-      <p>El menú principal incluye opciones para turnos, dirección del consultorio, atención online y primera consulta. El bot intenta saludar al contacto por nombre la primera vez y después evita repetir el saludo en cada respuesta.</p>
+      <p>El menú principal tiene nueve opciones numeradas con emojis (1️⃣ Turnos, 2️⃣ Obras sociales, 3️⃣ Consulta nutricional, 4️⃣ Nutrición deportiva, 5️⃣ Antropometría de 5 componentes, 6️⃣ Neurología, 7️⃣ Valores, 8️⃣ Ubicación, 9️⃣ Hablar con Celia). Las palabras clave para auto-detección incluyen: <em>turno</em>, <em>obra social</em>, <em>precio</em>, <em>valores</em>, <em>antropometría</em>, <em>deportista</em>, <em>crossfit</em>, <em>rendimiento</em>, <em>diabetes</em>, <em>neurología</em>, <em>dirección</em>, <em>ubicación</em>, <em>consulta</em>, <em>plan alimentario</em>, entre otras.</p>
     </section>
 
     <section id="comandos" class="section">
@@ -753,15 +753,17 @@
       <p>Accesible desde el botón <em>Configuración</em> de la barra superior. Permite editar todos los textos que el bot envía automáticamente y gestionar las listas auxiliares del sistema sin tocar el código.</p>
       <h3>Mensaje principal</h3>
       <ul>
-        <li><strong>Mensaje del menú:</strong> texto que recibe el contacto la primera vez que escribe, o cuando dice <em>hola</em>, <em>menu</em> o <em>turno</em>.</li>
+        <li><strong>Mensaje del menú:</strong> texto que recibe el contacto la primera vez que escribe, o cuando dice <em>hola</em> o <em>menu</em>. Incluye las nueve opciones numeradas del consultorio.</li>
         <li><strong>Mensaje por defecto:</strong> respuesta de fallback cuando el bot no reconoce ninguna intención.</li>
       </ul>
-      <h3>Respuestas por intención</h3>
-      <p>Siete textos editables, uno por cada tema reconocido: turnos (sacar/cambiar/cancelar), dirección del consultorio, atención online, primera consulta y cambio de online a presencial.</p>
-      <h3>Derivación a humano</h3>
-      <p>Texto único que el bot envía cuando deriva la conversación a un operador (por pedido del contacto o por detección de conflicto).</p>
+      <h3>Respuestas del menú principal</h3>
+      <p>Nueve textos editables, uno por cada opción del menú: <em>Turnos</em>, <em>Obras sociales</em>, <em>Consulta nutricional</em>, <em>Nutrición deportiva</em>, <em>Antropometría de 5 componentes</em>, <em>Neurología</em>, <em>Valores</em>, <em>Ubicación</em> y <em>Hablar con Celia</em>. Cada uno se dispara por número del menú o por palabras clave asociadas (la sección del panel muestra los disparadores debajo de cada campo).</p>
+      <h3>Sub-respuestas por palabras clave</h3>
+      <p>Siete respuestas adicionales que se disparan por palabras clave específicas, no por número de menú: <em>Obra social no cubierta</em> (uso manual desde respuestas rápidas), <em>Antropometría vs InBody</em>, <em>¿La antropometría incluye plan?</em>, <em>Reserva del turno (seña y alias)</em>, <em>Política de inasistencia</em>, <em>Diabetes</em> y <em>Descenso de peso</em>.</p>
+      <h3>Derivación por conflicto</h3>
+      <p>Texto único que el bot envía cuando el detector de conflicto encuentra un mensaje agresivo, una amenaza o lenguaje inapropiado. La conversación queda marcada como esperando humano y con la etiqueta correspondiente.</p>
       <h3>Seguimientos por tema en curso</h3>
-      <p>Siete textos cortos que el bot usa cuando el contacto sigue escribiendo dentro de un tema ya activo, o mientras espera atención humana.</p>
+      <p>Tres textos: dos para el flujo de "esperando humano" (primera oferta + repeticiones) y un <em>acuse genérico</em> que el bot envía cuando un contacto sigue escribiendo después de haber recibido una respuesta de intención (por ejemplo, manda los datos solicitados para un turno).</p>
       <h3>Comandos del bot</h3>
       <p>Ocho textos correspondientes a las respuestas de los comandos <code>!help</code>, <code>!time</code>, <code>!about</code>, <code>!ping</code> y los cuatro mensajes asociados a <code>!broadcast</code>.</p>
       <p>Algunos campos aceptan variables entre llaves dobles que el bot reemplaza al enviar: <code>{{botName}}</code>, <code>{{time}}</code>, <code>{{timezone}}</code>, <code>{{count}}</code>. La UI muestra debajo de cada campo las variables disponibles.</p>

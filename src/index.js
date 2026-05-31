@@ -77,148 +77,246 @@ const DEFAULT_CONFLICT_RULES = {
   }
 }
 const TOPIC_VALUES = new Set([
-  'appointment',
-  'reschedule',
-  'cancel',
-  'location',
-  'online',
-  'first_consultation',
+  'turnos',
+  'obras-sociales',
+  'obra-social-no-cubierta',
+  'consulta-nutricional',
+  'nutricion-deportiva',
+  'antropometria',
+  'antropometria-vs-inbody',
+  'antropometria-plan',
+  'neurologia',
+  'valores',
+  'ubicacion',
+  'hablar-con-celia',
+  'reserva-turno',
+  'politica-inasistencia',
+  'diabetes',
+  'descenso-peso',
   'human'
 ])
 
+const INTENT_DISPATCH = {
+  'turnos': { messageKey: 'turnos', topic: 'turnos' },
+  'obras-sociales': { messageKey: 'obrasSociales', topic: 'obras-sociales' },
+  'consulta-nutricional': { messageKey: 'consultaNutricional', topic: 'consulta-nutricional' },
+  'nutricion-deportiva': { messageKey: 'nutricionDeportiva', topic: 'nutricion-deportiva' },
+  'antropometria': { messageKey: 'antropometria', topic: 'antropometria' },
+  'antropometria-vs-inbody': { messageKey: 'antropometriaVsInbody', topic: 'antropometria-vs-inbody' },
+  'antropometria-plan': { messageKey: 'antropometriaPlan', topic: 'antropometria-plan' },
+  'neurologia': { messageKey: 'neurologia', topic: 'neurologia' },
+  'valores': { messageKey: 'valores', topic: 'valores' },
+  'ubicacion': { messageKey: 'ubicacion', topic: 'ubicacion' },
+  'reserva-turno': { messageKey: 'reservaTurno', topic: 'reserva-turno' },
+  'politica-inasistencia': { messageKey: 'politicaInasistencia', topic: 'politica-inasistencia' },
+  'diabetes': { messageKey: 'diabetes', topic: 'diabetes' },
+  'descenso-peso': { messageKey: 'descensoPeso', topic: 'descenso-peso' }
+}
+
 const DEFAULT_BOT_MESSAGES = {
   menu: [
-    'Gracias por comunicarte con el consultorio de nutricion 😊',
+    'Hola 👋 Gracias por comunicarte con Lic. Celia Soler, Nutricionista.',
     '',
-    'Te dejo las opciones para que podamos ayudarte mas rapido ✨',
-    '1. Sacar un turno 📅',
-    '2. Cambiar un turno 🔄',
-    '3. Cancelar un turno ❌',
-    '6. Ver direccion del consultorio 📍',
-    '7. Atencion online 💻',
-    '8. Indicaciones para la primera consulta 🩺',
+    '📍 Atención presencial en Clínica El Castaño – Consultorios externos (San Luis y Estados Unidos, San Juan).',
     '',
-    'Podes responder con el numero de la opcion que necesites.',
+    '¿Sobre qué consulta necesitás información?',
     '',
-    'Si preferis, tambien podes dejar tu consulta por este medio y te respondemos a la brevedad 💬'
+    '1️⃣ Turnos',
+    '2️⃣ Obras sociales',
+    '3️⃣ Consulta nutricional',
+    '4️⃣ Nutrición deportiva',
+    '5️⃣ Antropometría de 5 componentes',
+    '6️⃣ Neurología',
+    '7️⃣ Valores',
+    '8️⃣ Ubicación',
+    '9️⃣ Hablar con Celia',
+    '',
+    'Respondé con el número o el nombre de la opción que necesites 💬'
   ].join('\n'),
   defaultReply: DEFAULT_REPLY,
   intents: {
-    appointment: [
-      'Perfecto 😊 Para ayudarte a coordinar un turno, por favor envianos:',
-      '- nombre y apellido',
-      '- dia que te queda mejor',
-      '- horario aproximado o franja horaria',
-      '- si es primera consulta o control',
+    turnos: [
+      'Para coordinar un turno necesito que me indiques:',
       '',
-      'Ejemplo: Maria Perez, martes por la tarde, primera consulta.',
+      '👉 Nombre y apellido',
+      '👉 Objetivo de la consulta',
+      '👉 Si tenés obra social y cuál',
       '',
-      'Con esos datos revisamos disponibilidad y te respondemos apenas posible.',
-      'Gracias por comunicarte 💚'
+      'Una vez recibida la información, te ayudaré a coordinar tu atención.'
     ].join('\n'),
-    reschedule: [
-      'No hay problema 😊 Para reprogramar tu turno, envianos:',
-      '- nombre y apellido',
-      '- fecha y horario del turno que tenes reservado',
-      '- nuevo dia o franja horaria que te convenga',
+    obrasSociales: [
+      'Sí, trabajo con distintas obras sociales:',
       '',
-      'Apenas lo recibamos, vemos las alternativas disponibles y te avisamos.',
-      'Muchas gracias 💚'
+      '✅ AMFFA',
+      '✅ Avalian (ACA Salud)',
+      '✅ DAMSU',
+      '✅ Jerárquicos Salud',
+      '✅ Medicus',
+      '✅ Swiss Medical',
+      '✅ IOSFA',
+      '✅ OMINT',
+      '✅ OSSEG',
+      '✅ Galeno',
+      '✅ Sancor Salud',
+      '✅ Federada Salud',
+      '✅ Andes Salud',
+      '✅ NOBIS',
+      '✅ Red de Seguro Médico',
+      '✅ Prevención Salud',
+      '✅ TV Salud',
+      '✅ Luz y Fuerza',
+      '✅ OSPATCA',
+      '✅ OSPE',
+      '✅ OSPIDA',
+      '✅ OSPIP',
+      '✅ OSPIS',
+      '✅ Poder Judicial',
+      '✅ Policía Federal',
+      '✅ Luis Pasteur',
+      '✅ Higea Salud',
+      '✅ Brindar Salud',
+      '✅ Bramed',
+      '✅ Leal Médica',
+      '',
+      'Para verificar cobertura necesito:',
+      '',
+      '👉 Obra Social',
+      '👉 DNI',
+      '👉 Número de afiliado/a',
+      '👉 Token (si tu obra social lo requiere)',
+      '',
+      'Con esos datos te confirmaremos la cobertura y el valor correspondiente.'
     ].join('\n'),
-    cancel: [
-      'Esta bien 😊 Para cancelar el turno, por favor indicarnos:',
-      '- nombre y apellido',
-      '- fecha del turno',
-      '- horario aproximado',
+    obraSocialNoCubierta: [
+      'Actualmente no trabajo con esa obra social.',
       '',
-      'Si queres, en el mismo mensaje podes avisarnos si preferis reprogramarlo para otro dia.',
-      'Gracias por avisar con anticipacion 💚'
+      'De todas formas podés realizar la consulta de manera particular:',
+      '',
+      '• Consulta o control: $30.000',
+      '• Primera consulta + plan alimentario: $60.000',
+      '',
+      'Si querés coordinar turno, podemos ayudarte 😊'
     ].join('\n'),
-    location: [
-      'Te compartimos la direccion del consultorio 📍',
-      'Av. Corrientes 1234, Piso 5, CABA.',
+    consultaNutricional: [
+      'La consulta incluye:',
       '',
-      'Si queres, tambien te podemos pasar la ubicacion por Google Maps.',
+      '✔️ Evaluación nutricional completa',
+      '✔️ Revisión de hábitos alimentarios',
+      '✔️ Análisis de objetivos y antecedentes',
+      '✔️ Plan alimentario personalizado (en primera consulta)',
+      '✔️ Educación alimentaria y estrategias prácticas',
       '',
-      'Cualquier duda para llegar, escribinos. Te esperamos 😊'
+      'Cada plan se adapta a las necesidades y objetivos de cada paciente.'
     ].join('\n'),
-    online: [
-      'Tambien contamos con atencion online 💻',
+    nutricionDeportiva: [
+      'Trabajo con deportistas de distintos niveles y disciplinas.',
       '',
-      'La consulta se realiza por videollamada y despues te enviamos las indicaciones o el plan por WhatsApp o mail.',
-      'Si queres coordinar una consulta online, responde con la opcion 1.',
+      'El acompañamiento incluye:',
       '',
-      'Estamos para acompanarte de la forma que te resulte mas comoda 💚'
+      '✔️ Evaluación nutricional',
+      '✔️ Estrategias para mejorar rendimiento',
+      '✔️ Alimentación adaptada a entrenamientos y competencias',
+      '✔️ Recuperación y composición corporal',
+      '',
+      'También puede complementarse con antropometría de 5 componentes.'
     ].join('\n'),
-    firstConsultation: [
-      'Para la primera consulta, te recomendamos tener a mano 🩺',
-      '- estudios recientes, si tenes',
-      '- lista de medicacion habitual',
-      '- el motivo de la consulta o tus objetivos',
-      '- obra social o medio de pago',
+    antropometria: [
+      'La antropometría de 5 componentes es una evaluación completa de la composición corporal.',
       '',
-      'En la primera consulta se realiza una evaluacion inicial y se define el mejor enfoque para acompañarte.',
+      'Permite conocer:',
       '',
-      'Si necesitas mas informacion antes de reservar, escribinos con tranquilidad 😊'
+      '✔️ Masa grasa',
+      '✔️ Masa muscular',
+      '✔️ Masa ósea',
+      '✔️ Masa residual',
+      '✔️ Masa de la piel',
+      '',
+      'Incluye medición y explicación de los resultados.',
+      '',
+      '💰 Valor: $45.000',
+      '📍 Atención presencial.'
     ].join('\n'),
-    presentialFollowup: [
-      'Perfecto 😊 Si preferis atencion presencial, tambien podemos ayudarte.',
+    antropometriaVsInbody: [
+      'Sí, ambas evalúan composición corporal.',
       '',
-      'Para coordinarla, envianos:',
-      '- nombre y apellido',
-      '- dia que te quede mejor',
-      '- horario aproximado o franja horaria',
-      '- si es primera consulta o control',
+      'La antropometría utiliza mediciones estandarizadas de pliegues y perímetros corporales, permitiendo un análisis detallado y seguimiento preciso de la composición corporal.'
+    ].join('\n'),
+    antropometriaPlan: [
+      'La antropometría incluye la evaluación y explicación de los resultados.',
       '',
-      'Apenas lo recibamos, te respondemos por este medio 💚'
+      'Si además necesitás un plan alimentario personalizado, corresponde realizar una consulta nutricional.'
+    ].join('\n'),
+    neurologia: [
+      'El acompañamiento nutricional en neurología busca adaptar la alimentación a las necesidades de cada paciente, considerando el diagnóstico, tratamiento médico y objetivos terapéuticos.',
+      '',
+      'El abordaje es totalmente personalizado.'
+    ].join('\n'),
+    valores: [
+      '💰 Valores actuales:',
+      '',
+      '• Consulta o control:',
+      '  $30.000 particular',
+      '  $15.000 con obra social',
+      '',
+      '• Primera consulta + plan alimentario:',
+      '  $60.000 particular',
+      '  $30.000 con obra social',
+      '',
+      '• Antropometría de 5 componentes:',
+      '  $45.000 (solo particular)'
+    ].join('\n'),
+    ubicacion: [
+      '📍 Clínica El Castaño – Consultorios externos',
+      '',
+      'San Luis y Estados Unidos',
+      'San Juan, Argentina',
+      '',
+      'Atención exclusivamente presencial.'
+    ].join('\n'),
+    hablarConCelia: [
+      'Perfecto 😊',
+      '',
+      'Dejanos tu nombre y tu consulta, y Celia te responderá a la brevedad.'
+    ].join('\n'),
+    reservaTurno: [
+      'Para confirmar el turno se solicita una seña de $15.000 mediante transferencia.',
+      '',
+      'ALIAS: cefsoler',
+      'Titular: Celia Fatima Soler',
+      '',
+      'Una vez realizado el pago, enviá el comprobante y el turno quedará confirmado 💚'
+    ].join('\n'),
+    politicaInasistencia: [
+      'Si necesitás reprogramar, avisá con anticipación y coordinaremos un nuevo horario.',
+      '',
+      'Las inasistencias sin aviso previo generan la pérdida de la seña abonada.'
+    ].join('\n'),
+    diabetes: [
+      'La alimentación cumple un papel fundamental en el control glucémico.',
+      '',
+      'En consulta se trabaja de manera personalizada, teniendo en cuenta tratamiento, medicación, hábitos y objetivos.'
+    ].join('\n'),
+    descensoPeso: [
+      'El objetivo es lograr un descenso de peso saludable y sostenible.',
+      '',
+      'La consulta permite identificar hábitos, obstáculos y estrategias para construir un plan adaptado a tu realidad.'
     ].join('\n')
   },
   humanHandoff: [
     'Gracias por escribirnos 😊',
     '',
     'Ya dejamos asentado que queres hablar con una persona del equipo.',
-    'Apenas un operador este disponible, te va a responder por este mismo medio.',
+    'Apenas estemos disponibles, te respondemos por este mismo medio.',
     '',
     'Gracias por tu paciencia 💚'
   ].join('\n'),
   topicFollowups: {
     waitingHumanFirstOffer: [
-      'Si queres, mientras aguardas atencion humana, tambien podemos ayudarte desde el menu 😊',
-      'Si preferis continuar con el bot, te comparto nuevamente las opciones disponibles.'
+      'Si querés, mientras esperás atención humana, también podemos seguir desde el menú 😊',
+      'Te comparto nuevamente las opciones disponibles.'
     ].join('\n'),
-    waitingHumanRepeat: 'Si necesitas algo mas, podes elegir una opcion del menu o escribirnos tu consulta y la revisamos 😊',
-    appointment: [
-      'Perfecto 😊 Ya recibimos tu mensaje para coordinar un turno presencial.',
-      'En cuanto revisemos disponibilidad, te respondemos por este medio 💚'
-    ].join('\n'),
-    reschedule: [
-      'Gracias 😊 Ya recibimos tu pedido para cambiar el turno.',
-      'En breve revisamos las opciones disponibles y te respondemos por este medio 💚'
-    ].join('\n'),
-    cancel: [
-      'Gracias por avisarnos 😊',
-      'Ya recibimos tu mensaje para cancelar el turno y lo revisamos a la brevedad 💚'
-    ].join('\n'),
-    onlineToPresential: [
-      'Perfecto 😊 Si preferis atencion presencial, tambien podemos ayudarte.',
-      '',
-      'Para coordinarla, envianos:',
-      '- nombre y apellido',
-      '- dia que te quede mejor',
-      '- horario aproximado o franja horaria',
-      '- si es primera consulta o control',
-      '',
-      'Apenas lo recibamos, revisamos disponibilidad y te respondemos 💚'
-    ].join('\n'),
-    onlineRepeat: [
-      'Perfecto 😊 Si queres coordinar una consulta online, envianos:',
-      '- nombre y apellido',
-      '- dia que te quede mejor',
-      '- horario aproximado o franja horaria',
-      '- si es primera consulta o control',
-      '',
-      'Apenas lo recibamos, te respondemos por este medio 💚'
-    ].join('\n')
+    waitingHumanRepeat: 'Si necesitás algo más, podés elegir una opción del menú o dejarnos tu consulta y la revisamos 😊',
+    generic: 'Recibimos tu mensaje 😊 Lo dejamos asentado y te respondemos a la brevedad por este medio 💚'
   },
   commands: {
     help: [
@@ -313,7 +411,7 @@ function personalizeText(name, text, options = {}) {
 }
 
 function getMenuText(name) {
-  return personalizeText(name, botMessages.menu)
+  return personalizeText(name, botMessages.menu, { includeGreeting: false })
 }
 
 function getIsoTimestamp() {
@@ -484,6 +582,11 @@ function detectConflictLevel(text) {
 
 function isOperatorRequest(text) {
   return includesAny(text, [
+    'hablar con celia',
+    'hablar con la nutri',
+    'hablar con la nutricionista',
+    'quiero hablar con celia',
+    'necesito hablar con celia',
     'operador',
     'agente',
     'asesor',
@@ -498,17 +601,24 @@ function isOperatorRequest(text) {
 }
 
 function detectIntent(text, currentTopic = '') {
-  if (isOperatorRequest(text)) return 'human'
-  if (text === '1' || includesAny(text, ['sacar turno', 'quiero un turno', 'quiero turno', 'reservar turno', 'agendar turno'])) return 'appointment'
-  if (text === '2' || includesAny(text, ['cambiar turno', 'reprogramar turno', 'mover turno'])) return 'reschedule'
-  if (text === '3' || includesAny(text, ['cancelar turno', 'cancelacion de turno', 'anular turno'])) return 'cancel'
-  if (text === '6' || includesAny(text, ['direccion', 'ubicacion', 'consultorio', 'google maps', 'maps', 'como llegar', 'donde quedan'])) return 'location'
-  if (text === '7' || includesAny(text, ['atencion online', 'consulta online', 'online', 'videollamada'])) return 'online'
-  if (text === '8' || includesAny(text, ['primera consulta', 'primera vez', 'indicaciones'])) return 'first_consultation'
+  if (isOperatorRequest(text)) return 'hablar-con-celia'
 
-  if (includesAny(text, ['presencial', 'en persona'])) {
-    return currentTopic === 'online' ? 'presential_followup' : 'appointment'
-  }
+  if (text === '1' || includesAny(text, ['sacar turno', 'quiero un turno', 'quiero turno', 'reservar turno', 'agendar turno', 'pedir turno', 'turno por favor'])) return 'turnos'
+  if (text === '2' || includesAny(text, ['obras sociales', 'obra social', 'cobertura', 'prepaga', 'afiliado', 'afiliada', 'me cubre', 'me toman'])) return 'obras-sociales'
+  if (text === '3' || includesAny(text, ['consulta nutricional', 'que incluye la consulta', 'que incluye consulta', 'plan alimentario', 'plan de comidas', 'que evaluas'])) return 'consulta-nutricional'
+  if (text === '4' || includesAny(text, ['nutricion deportiva', 'deportista', 'deportiva', 'crossfit', 'rendimiento deportivo', 'rendimiento', 'entrenamiento', 'entrenando', 'gimnasio', 'corro', 'running', 'futbol', 'rugby'])) return 'nutricion-deportiva'
+  if (text === '5' || includesAny(text, ['antropometria', 'antropometria de 5 componentes', '5 componentes', 'composicion corporal', 'medicion corporal'])) return 'antropometria'
+  if (text === '6' || includesAny(text, ['neurologia', 'neurologico', 'neurologica', 'epilepsia', 'parkinson', 'alzheimer', 'esclerosis'])) return 'neurologia'
+  if (text === '7' || includesAny(text, ['valores', 'valor', 'precio', 'precios', 'cuanto cuesta', 'cuanto sale', 'cuanto vale', 'costo', 'aranceles'])) return 'valores'
+  if (text === '8' || includesAny(text, ['ubicacion', 'donde atendes', 'donde queda', 'donde estas', 'direccion', 'consultorio', 'como llegar', 'google maps', 'maps', 'mapa', 'clinica el castano'])) return 'ubicacion'
+  if (text === '9') return 'hablar-con-celia'
+
+  if (includesAny(text, ['inbody', 'in body', 'bioimpedancia'])) return 'antropometria-vs-inbody'
+  if (includesAny(text, ['antropometria me da plan', 'antropometria incluye plan', 'antropometria con plan', 'me das plan', 'incluye plan'])) return 'antropometria-plan'
+  if (includesAny(text, ['como confirmo el turno', 'como reservo', 'como confirmo', 'sena', 'seña', 'alias', 'transferencia', 'pago del turno'])) return 'reserva-turno'
+  if (includesAny(text, ['no puedo asistir', 'no podre asistir', 'no podre ir', 'no voy a poder', 'inasistencia', 'reprogramar', 'que pasa si no'])) return 'politica-inasistencia'
+  if (includesAny(text, ['diabetes', 'diabetico', 'diabetica', 'glucemia', 'insulina', 'azucar alta'])) return 'diabetes'
+  if (includesAny(text, ['bajar de peso', 'descenso de peso', 'perder peso', 'adelgazar', 'quiero adelgazar', 'bajar peso'])) return 'descenso-peso'
 
   return ''
 }
@@ -627,23 +737,28 @@ function normalizeBotMessages(raw) {
     menu: pickString(safe.menu, DEFAULT_BOT_MESSAGES.menu),
     defaultReply: pickString(safe.defaultReply, DEFAULT_BOT_MESSAGES.defaultReply),
     intents: {
-      appointment: pickString(intents.appointment, DEFAULT_BOT_MESSAGES.intents.appointment),
-      reschedule: pickString(intents.reschedule, DEFAULT_BOT_MESSAGES.intents.reschedule),
-      cancel: pickString(intents.cancel, DEFAULT_BOT_MESSAGES.intents.cancel),
-      location: pickString(intents.location, DEFAULT_BOT_MESSAGES.intents.location),
-      online: pickString(intents.online, DEFAULT_BOT_MESSAGES.intents.online),
-      firstConsultation: pickString(intents.firstConsultation, DEFAULT_BOT_MESSAGES.intents.firstConsultation),
-      presentialFollowup: pickString(intents.presentialFollowup, DEFAULT_BOT_MESSAGES.intents.presentialFollowup)
+      turnos: pickString(intents.turnos, DEFAULT_BOT_MESSAGES.intents.turnos),
+      obrasSociales: pickString(intents.obrasSociales, DEFAULT_BOT_MESSAGES.intents.obrasSociales),
+      obraSocialNoCubierta: pickString(intents.obraSocialNoCubierta, DEFAULT_BOT_MESSAGES.intents.obraSocialNoCubierta),
+      consultaNutricional: pickString(intents.consultaNutricional, DEFAULT_BOT_MESSAGES.intents.consultaNutricional),
+      nutricionDeportiva: pickString(intents.nutricionDeportiva, DEFAULT_BOT_MESSAGES.intents.nutricionDeportiva),
+      antropometria: pickString(intents.antropometria, DEFAULT_BOT_MESSAGES.intents.antropometria),
+      antropometriaVsInbody: pickString(intents.antropometriaVsInbody, DEFAULT_BOT_MESSAGES.intents.antropometriaVsInbody),
+      antropometriaPlan: pickString(intents.antropometriaPlan, DEFAULT_BOT_MESSAGES.intents.antropometriaPlan),
+      neurologia: pickString(intents.neurologia, DEFAULT_BOT_MESSAGES.intents.neurologia),
+      valores: pickString(intents.valores, DEFAULT_BOT_MESSAGES.intents.valores),
+      ubicacion: pickString(intents.ubicacion, DEFAULT_BOT_MESSAGES.intents.ubicacion),
+      hablarConCelia: pickString(intents.hablarConCelia, DEFAULT_BOT_MESSAGES.intents.hablarConCelia),
+      reservaTurno: pickString(intents.reservaTurno, DEFAULT_BOT_MESSAGES.intents.reservaTurno),
+      politicaInasistencia: pickString(intents.politicaInasistencia, DEFAULT_BOT_MESSAGES.intents.politicaInasistencia),
+      diabetes: pickString(intents.diabetes, DEFAULT_BOT_MESSAGES.intents.diabetes),
+      descensoPeso: pickString(intents.descensoPeso, DEFAULT_BOT_MESSAGES.intents.descensoPeso)
     },
     humanHandoff: pickString(safe.humanHandoff, DEFAULT_BOT_MESSAGES.humanHandoff),
     topicFollowups: {
       waitingHumanFirstOffer: pickString(topicFollowups.waitingHumanFirstOffer, DEFAULT_BOT_MESSAGES.topicFollowups.waitingHumanFirstOffer),
       waitingHumanRepeat: pickString(topicFollowups.waitingHumanRepeat, DEFAULT_BOT_MESSAGES.topicFollowups.waitingHumanRepeat),
-      appointment: pickString(topicFollowups.appointment, DEFAULT_BOT_MESSAGES.topicFollowups.appointment),
-      reschedule: pickString(topicFollowups.reschedule, DEFAULT_BOT_MESSAGES.topicFollowups.reschedule),
-      cancel: pickString(topicFollowups.cancel, DEFAULT_BOT_MESSAGES.topicFollowups.cancel),
-      onlineToPresential: pickString(topicFollowups.onlineToPresential, DEFAULT_BOT_MESSAGES.topicFollowups.onlineToPresential),
-      onlineRepeat: pickString(topicFollowups.onlineRepeat, DEFAULT_BOT_MESSAGES.topicFollowups.onlineRepeat)
+      generic: pickString(topicFollowups.generic, DEFAULT_BOT_MESSAGES.topicFollowups.generic)
     },
     commands: {
       help: pickString(commands.help, DEFAULT_BOT_MESSAGES.commands.help),
@@ -1358,29 +1473,8 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
     return true
   }
 
-  if (conversation.currentTopic === 'appointment') {
-    await sendText(sock, sender, botMessages.topicFollowups.appointment, name)
-    return true
-  }
-
-  if (conversation.currentTopic === 'reschedule') {
-    await sendText(sock, sender, botMessages.topicFollowups.reschedule, name)
-    return true
-  }
-
-  if (conversation.currentTopic === 'cancel') {
-    await sendText(sock, sender, botMessages.topicFollowups.cancel, name)
-    return true
-  }
-
-  if (conversation.currentTopic === 'online') {
-    if (includesAny(text, ['presencial', 'en persona'])) {
-      await sendText(sock, sender, botMessages.topicFollowups.onlineToPresential, name)
-      await setConversationFlow(sender, { currentTopic: 'appointment' })
-      return true
-    }
-
-    await sendText(sock, sender, botMessages.topicFollowups.onlineRepeat, name)
+  if (conversation.currentTopic) {
+    await sendText(sock, sender, botMessages.topicFollowups.generic, name, { includeGreeting: false })
     return true
   }
 
@@ -1445,55 +1539,30 @@ async function handleCommand(sock, sender, text, name) {
     return true
   }
 
-  if (intent === 'human') {
-    await sendHumanHandoff(sock, sender, name)
+  if (intent === 'hablar-con-celia') {
+    await sendText(sock, sender, botMessages.intents.hablarConCelia, name)
+    const existingTags = conversation?.tags || []
+    const nextTags = existingTags.includes('operador') ? existingTags : [...existingTags, 'operador']
+    await setConversationFlow(sender, {
+      currentTopic: 'hablar-con-celia',
+      waitingForHuman: true,
+      humanFallbackOffered: false,
+      escalationReason: 'Solicitud de hablar con Celia',
+      tags: nextTags,
+      shouldUseNameGreeting: false
+    })
     return true
   }
 
-  if (text === 'menu' || text === 'turno') {
+  if (text === 'menu') {
     await sendMenu(sock, sender, name)
     return true
   }
 
-  if (intent === 'appointment') {
-    await sendText(sock, sender, botMessages.intents.appointment, name)
-    await setConversationFlow(sender, { currentTopic: 'appointment', waitingForHuman: false })
-    return true
-  }
-
-  if (intent === 'reschedule') {
-    await sendText(sock, sender, botMessages.intents.reschedule, name)
-    await setConversationFlow(sender, { currentTopic: 'reschedule', waitingForHuman: false })
-    return true
-  }
-
-  if (intent === 'cancel') {
-    await sendText(sock, sender, botMessages.intents.cancel, name)
-    await setConversationFlow(sender, { currentTopic: 'cancel', waitingForHuman: false })
-    return true
-  }
-
-  if (intent === 'location') {
-    await sendText(sock, sender, botMessages.intents.location, name)
-    await setConversationFlow(sender, { currentTopic: 'location', waitingForHuman: false })
-    return true
-  }
-
-  if (intent === 'online') {
-    await sendText(sock, sender, botMessages.intents.online, name)
-    await setConversationFlow(sender, { currentTopic: 'online', waitingForHuman: false })
-    return true
-  }
-
-  if (intent === 'first_consultation') {
-    await sendText(sock, sender, botMessages.intents.firstConsultation, name)
-    await setConversationFlow(sender, { currentTopic: 'first_consultation', waitingForHuman: false })
-    return true
-  }
-
-  if (intent === 'presential_followup') {
-    await sendText(sock, sender, botMessages.intents.presentialFollowup, name)
-    await setConversationFlow(sender, { currentTopic: 'appointment', waitingForHuman: false })
+  const dispatch = INTENT_DISPATCH[intent]
+  if (dispatch) {
+    await sendText(sock, sender, botMessages.intents[dispatch.messageKey], name)
+    await setConversationFlow(sender, { currentTopic: dispatch.topic, waitingForHuman: false })
     return true
   }
 
