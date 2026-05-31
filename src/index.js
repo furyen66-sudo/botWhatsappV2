@@ -52,6 +52,40 @@ const CONFIG_PAGE_FILE = new URL('../public/config.html', import.meta.url)
 const CONVERSATION_STATUSES = new Set(['pendiente', 'respondida', 'urgente'])
 const PAYMENT_RECEIPT_STATUSES = new Set(['', 'requested', 'received', 'verified'])
 const SCHEDULING_SELECTION_TEXTS = new Set(['1', '2', '3'])
+const TURN_BOOKING_STAGES = new Set(['', 'awaiting-insurance', 'awaiting-objective'])
+const COVERED_INSURANCE_NAMES = [
+  'amffa',
+  'avalian',
+  'aca salud',
+  'damsu',
+  'jerarquicos salud',
+  'medicus',
+  'swiss medical',
+  'iosfa',
+  'omint',
+  'osseg',
+  'galeno',
+  'sancor salud',
+  'federada salud',
+  'andes salud',
+  'nobis',
+  'red de seguro medico',
+  'prevencion salud',
+  'tv salud',
+  'luz y fuerza',
+  'ospatca',
+  'ospe',
+  'ospida',
+  'ospip',
+  'ospis',
+  'poder judicial',
+  'policia federal',
+  'luis pasteur',
+  'higea salud',
+  'brindar salud',
+  'bramed',
+  'leal medica'
+]
 const COORDINATING_TOPICS = new Set([
   'turnos',
   'consulta-nutricional',
@@ -164,10 +198,9 @@ const DEFAULT_BOT_MESSAGES = {
       'Para coordinar un turno necesito que me indiques:',
       '',
       '👉 Nombre y apellido',
-      '👉 Objetivo de la consulta',
       '👉 Si tenés obra social y cuál',
       '',
-      'Una vez recibida la información, te ayudaré a coordinar tu atención.'
+      'Una vez recibida la información, te voy a pedir el objetivo de la consulta para seguir con la coordinación.'
     ].join('\n'),
     obrasSociales: [
       'Sí, trabajo con distintas obras sociales:',
@@ -562,6 +595,10 @@ function normalizePaymentReceiptStatus(status) {
   return PAYMENT_RECEIPT_STATUSES.has(status) ? status : ''
 }
 
+function normalizeTurnBookingStage(stage) {
+  return TURN_BOOKING_STAGES.has(stage) ? stage : ''
+}
+
 function normalizeCalendarSlot(slot, fallbackIndex = 0) {
   if (!slot || typeof slot !== 'object') return null
   const start = typeof slot.start === 'string' ? slot.start : ''
@@ -599,6 +636,7 @@ function createConversationRecord(jid, now = getIsoTimestamp()) {
     escalationReason: '',
     conflictLevel: '',
     paymentReceiptStatus: '',
+    turnBookingStage: '',
     offeredCalendarSlots: [],
     selectedCalendarSlotStart: '',
     selectedCalendarSlotEnd: '',
@@ -741,6 +779,7 @@ async function ensureConversationStore() {
         escalationReason: item.escalationReason || '',
         conflictLevel: normalizeConflictLevel(item.conflictLevel),
         paymentReceiptStatus: normalizePaymentReceiptStatus(item.paymentReceiptStatus),
+        turnBookingStage: normalizeTurnBookingStage(item.turnBookingStage),
         offeredCalendarSlots: normalizeCalendarSlots(item.offeredCalendarSlots),
         selectedCalendarSlotStart: typeof item.selectedCalendarSlotStart === 'string' ? item.selectedCalendarSlotStart : '',
         selectedCalendarSlotEnd: typeof item.selectedCalendarSlotEnd === 'string' ? item.selectedCalendarSlotEnd : '',
@@ -968,6 +1007,7 @@ function createConversationSummary(conversation) {
     escalationReason: conversation.escalationReason,
     conflictLevel: conversation.conflictLevel,
     paymentReceiptStatus: conversation.paymentReceiptStatus || '',
+    turnBookingStage: conversation.turnBookingStage || '',
     offeredCalendarSlots: normalizeCalendarSlots(conversation.offeredCalendarSlots),
     selectedCalendarSlotStart: conversation.selectedCalendarSlotStart || '',
     selectedCalendarSlotEnd: conversation.selectedCalendarSlotEnd || '',
@@ -1128,6 +1168,10 @@ async function updateConversationMetadata(jid, updates) {
 
   if (typeof updates.paymentReceiptStatus === 'string') {
     current.paymentReceiptStatus = normalizePaymentReceiptStatus(updates.paymentReceiptStatus)
+  }
+
+  if (typeof updates.turnBookingStage === 'string') {
+    current.turnBookingStage = normalizeTurnBookingStage(updates.turnBookingStage)
   }
 
   if (Array.isArray(updates.offeredCalendarSlots)) {
@@ -1396,6 +1440,50 @@ function buildCalendarOfferText(slots) {
   ].join('\n')
 }
 
+function extractInsuranceCandidate(text) {
+  const parts = text
+    .split(/[,\n]/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+  if (parts.length < 2) return ''
+  return normalizeIncomingText(parts[parts.length - 1])
+}
+
+function detectCoveredInsurance(text) {
+  if (!text) return ''
+  const candidate = extractInsuranceCandidate(text)
+  const haystacks = [text, candidate].filter(Boolean)
+
+  for (const haystack of haystacks) {
+    for (const insuranceName of COVERED_INSURANCE_NAMES) {
+      if (haystack.includes(insuranceName)) return insuranceName
+    }
+  }
+
+  return ''
+}
+
+function hasParticularCoverage(text) {
+  return includesAny(text, ['sin obra social', 'particular', 'no tengo obra social', 'ninguna obra social'])
+}
+
+function seemsToContainTurnRequestDetails(text) {
+  return text.includes(',') || text.split(' ').length >= 4
+}
+
+function seemsToContainObjective(text) {
+  return shouldTreatAsTopicMessage(text)
+}
+
+function detectCoordinatingTopicFromObjective(text) {
+  const intent = detectIntent(text)
+  const dispatch = INTENT_DISPATCH[intent]
+  if (dispatch && COORDINATING_TOPICS.has(dispatch.topic) && dispatch.topic !== 'reserva-turno') {
+    return dispatch.topic
+  }
+  return 'turnos'
+}
+
 async function isCalendarSlotStillAvailable(start, end) {
   const client = await getCalendarClient()
   if (!client) return false
@@ -1512,6 +1600,46 @@ async function sendAvailableCalendarSlots(sock, sender, name, options = {}) {
   await updateConversationMetadata(sender, { offeredCalendarSlots })
   await sendText(sock, sender, buildCalendarOfferText(offeredCalendarSlots), name, { includeGreeting: false })
   return { sent: true, offeredCalendarSlots }
+}
+
+async function handleTurnosDetails(sock, sender, text, name) {
+  const conversation = getConversation(sender)
+  const stage = conversation?.turnBookingStage || 'awaiting-insurance'
+
+  if (stage === 'awaiting-objective') {
+    if (!seemsToContainObjective(text)) {
+      await sendText(sock, sender, 'Contame brevemente el objetivo de la consulta para seguir con la coordinación.', name, { includeGreeting: false })
+      return true
+    }
+
+    const nextTopic = detectCoordinatingTopicFromObjective(text)
+    await setConversationFlow(sender, {
+      currentTopic: nextTopic,
+      turnBookingStage: '',
+      paymentReceiptStatus: 'requested'
+    })
+    await sendText(sock, sender, botMessages.topicFollowups.coordinandoTurno, name, { includeGreeting: false })
+    await sendAvailableCalendarSlots(sock, sender, name)
+    return true
+  }
+
+  if (!seemsToContainTurnRequestDetails(text)) return false
+
+  if (hasParticularCoverage(text) || detectCoveredInsurance(text)) {
+    await setConversationFlow(sender, { turnBookingStage: 'awaiting-objective' })
+    await sendText(sock, sender, 'Perfecto 😊 Ahora decime cuál es el objetivo de la consulta para seguir con la coordinación del turno.', name, { includeGreeting: false })
+    return true
+  }
+
+  const insuranceCandidate = extractInsuranceCandidate(text)
+  if (insuranceCandidate) {
+    await sendText(sock, sender, botMessages.intents.obraSocialNoCubierta, name, { includeGreeting: false })
+    await setConversationFlow(sender, { turnBookingStage: 'awaiting-insurance' })
+    return true
+  }
+
+  await sendText(sock, sender, 'Para continuar, indicame tu nombre y apellido junto con la obra social que tenes, o decime si es particular.', name, { includeGreeting: false })
+  return true
 }
 
 async function getCalendarAvailability(daysAhead = GOOGLE_CALENDAR_DAYS_AHEAD) {
@@ -1943,6 +2071,7 @@ async function sendMenu(sock, sender, name = '') {
     humanFallbackOffered: false,
     escalationReason: '',
     conflictLevel: '',
+    turnBookingStage: '',
     shouldUseNameGreeting: false
   })
 }
@@ -1962,6 +2091,7 @@ async function sendHumanHandoff(sock, sender, name = '', escalationReason = 'Sol
         : ['operador'],
     escalationReason,
     conflictLevel,
+    turnBookingStage: '',
     shouldUseNameGreeting: false
   })
 }
@@ -2061,6 +2191,13 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
 
 async function handleCommand(sock, sender, text, name) {
   const conversation = getConversation(sender)
+
+  if (conversation?.currentTopic === 'turnos' && !conversation.offeredCalendarSlots?.length && !hasSelectedCalendarSlot(conversation)) {
+    if (await handleTurnosDetails(sock, sender, text, name)) {
+      return true
+    }
+  }
+
   const intent = detectIntent(text)
   const conflict = detectConflictLevel(text)
 
@@ -2138,6 +2275,7 @@ async function handleCommand(sock, sender, text, name) {
       humanFallbackOffered: false,
       escalationReason: 'Solicitud de hablar con Celia',
       tags: nextTags,
+      turnBookingStage: '',
       shouldUseNameGreeting: false
     })
     return true
@@ -2151,7 +2289,11 @@ async function handleCommand(sock, sender, text, name) {
   const dispatch = INTENT_DISPATCH[intent]
   if (dispatch) {
     await sendText(sock, sender, botMessages.intents[dispatch.messageKey], name)
-    const flow = { currentTopic: dispatch.topic, waitingForHuman: false }
+    const flow = {
+      currentTopic: dispatch.topic,
+      waitingForHuman: false,
+      turnBookingStage: dispatch.topic === 'turnos' ? 'awaiting-insurance' : ''
+    }
     if (dispatch.requestsReceipt && conversation?.paymentReceiptStatus !== 'received' && conversation?.paymentReceiptStatus !== 'verified') {
       flow.paymentReceiptStatus = 'requested'
     }
