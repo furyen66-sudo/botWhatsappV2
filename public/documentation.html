@@ -1,263 +1,856 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Documentation</title>
+  <title>Documentación - Centro de Atención</title>
   <style>
     :root {
+      color-scheme: light;
       --bg: #fcfbf8;
+      --bg-soft: #f4efe7;
       --panel: #ffffff;
+      --panel-soft: #faf7f2;
       --text: #111111;
       --muted: #666055;
       --line: #d9d2c8;
-      --accent: #111111;
-      --soft: #faf7f2;
+      --black: #111111;
+      --yellow: #f6db7b;
+      --green: #bfe3c1;
+      --violet: #d8b4fe;
+      --blue: #c7defe;
+      --pink: #f8c4cf;
+      --shadow: 0 16px 34px rgba(17, 17, 17, 0.06);
     }
+
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #111111;
+      --bg-soft: #181818;
+      --panel: #181818;
+      --panel-soft: #202020;
+      --text: #f5efe6;
+      --muted: #b9b0a4;
+      --line: #3f3a35;
+      --black: #f5efe6;
+      --shadow: none;
+    }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
+      min-height: 100vh;
       font-family: "Whyte", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
       color: var(--text);
-      line-height: 1.6;
+      line-height: 1.65;
     }
+
     .page {
-      max-width: 1100px;
+      max-width: 1120px;
       margin: 0 auto;
-      padding: 40px 24px 80px;
+      padding: 32px 28px 80px;
     }
+
     .topbar {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 32px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      margin: 0 -28px 32px;
+      padding: 14px 28px;
+      backdrop-filter: blur(8px);
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
       border-bottom: 1px solid var(--line);
-      padding-bottom: 18px;
     }
+
+    .topbar-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      background: linear-gradient(135deg, #ff7a18, #af002d 70%);
+      box-shadow: 14px 0 0 0 #0ea5e9, 7px 10px 0 0 #22c55e;
+      margin-right: 16px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .button,
+    .button-link {
+      cursor: pointer;
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text);
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font: inherit;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .button.primary,
+    .button-link.primary {
+      background: var(--black);
+      border-color: var(--black);
+      color: var(--bg);
+    }
+
+    .button:hover,
+    .button-link:hover {
+      transform: translateY(-1px);
+      opacity: 0.93;
+    }
+
+    .hero {
+      padding: 16px 0 8px;
+      max-width: 720px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
     h1 {
-      margin: 0 0 12px;
-      font-size: clamp(36px, 5vw, 58px);
-      line-height: 0.95;
+      margin: 0 0 16px;
+      font-size: clamp(38px, 5.5vw, 60px);
+      line-height: 0.97;
       letter-spacing: -0.05em;
     }
+
+    .hero p {
+      margin: 0 0 8px;
+      font-size: 17px;
+      color: var(--muted);
+    }
+
     h2 {
-      margin: 40px 0 12px;
+      margin: 36px 0 14px;
       font-size: 28px;
       letter-spacing: -0.03em;
     }
+
     h3 {
-      margin: 26px 0 10px;
-      font-size: 20px;
+      margin: 24px 0 10px;
+      font-size: 18px;
+      letter-spacing: -0.01em;
     }
+
     p, li {
       color: var(--muted);
       font-size: 16px;
     }
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 44px;
-      padding: 10px 16px;
-      border: 1px solid var(--line);
+
+    strong {
       color: var(--text);
-      text-decoration: none;
-      font-weight: 700;
-      background: var(--panel);
     }
+
+    .section {
+      border-top: 1px solid var(--line);
+      padding-top: 28px;
+      margin-top: 28px;
+    }
+
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 16px;
       margin-top: 18px;
     }
+
     .card {
       border: 1px solid var(--line);
       background: var(--panel);
       padding: 18px;
+      box-shadow: var(--shadow);
     }
-    .section {
-      border-top: 1px solid var(--line);
-      padding-top: 20px;
-      margin-top: 24px;
+
+    .card h3 {
+      margin-top: 0;
     }
+
+    .card p, .card li {
+      margin: 8px 0;
+    }
+
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+      padding: 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .toc a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      padding: 6px 0;
+      border-bottom: 1px dashed transparent;
+    }
+
+    .toc a:hover {
+      border-bottom-color: var(--line);
+    }
+
     code {
-      background: var(--soft);
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
       padding: 2px 6px;
       border-radius: 6px;
       color: var(--text);
+      font-size: 0.92em;
     }
-    ul { padding-left: 20px; }
+
+    ul, ol {
+      padding-left: 22px;
+      margin: 8px 0;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-right: 6px;
+    }
+
+    .badge.pendiente { background: #f8ebbb; color: #111; }
+    .badge.respondida { background: #cbe9d1; color: #111; }
+    .badge.urgente { background: #f5c3bc; color: #111; }
+    .badge.leve { background: #f8ddb3; color: #111; }
+    .badge.agresion { background: #f5c3bc; color: #111; }
+    .badge.amenaza { background: #f5c3bc; color: #111; }
+    .badge.derivado { background: #d3e5ff; color: #111; }
+    .badge.noleido { background: #d9c3ff; color: #111; }
+
+    .note {
+      margin-top: 14px;
+      padding: 14px 16px;
+      background: var(--panel-soft);
+      border-left: 4px solid var(--black);
+      border-radius: 0 8px 8px 0;
+    }
+
+    .note strong { display: block; margin-bottom: 4px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--panel-soft);
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    td {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    @media (max-width: 780px) {
+      .page { padding: 16px 16px 60px; }
+      .topbar { margin: 0 -16px 24px; padding: 12px 16px; }
+      h1 { font-size: 36px; }
+    }
   </style>
 </head>
-<body>
-  <main class="page">
-    <div class="topbar">
-      <div>
-        <h1>Documentation</h1>
-        <p>Detailed explanation of every section, control, state, and operational area inside the WhatsApp admin panel.</p>
+<body data-theme="light">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Centro de Atención · Documentación</span>
       </div>
-      <a class="button" href="/admin">Back to admin</a>
+      <div class="topbar-actions">
+        <a class="button-link primary" href="/admin">Volver al panel</a>
+        <a class="button-link" href="/config">Configuración</a>
+        <button id="themeToggle" class="button" type="button">Modo noche</button>
+      </div>
     </div>
+  </header>
 
-    <section class="section">
-      <h2>1. General Purpose</h2>
-      <p>This admin panel is the operational center for the WhatsApp bot. It helps an operator understand what is happening in every conversation, what the bot already answered, which contacts are waiting for a human reply, and how to continue the conversation manually when needed.</p>
-      <p>The page is intentionally structured in layers: high-level metrics first, filters second, conversation list third, and a modal with deeper operational tools after opening a specific conversation.</p>
+  <main class="page">
+    <section class="hero">
+      <span class="eyebrow">Manual operativo</span>
+      <h1>Documentación completa del panel</h1>
+      <p>Esta página describe en profundidad cada sección, control, indicador, estado y flujo que existen en el Centro de Atención de WhatsApp. Está pensada para que cualquier persona del equipo pueda usar el panel sin tener que adivinar qué hace cada botón.</p>
+      <p>Si entrás por primera vez al sistema, te recomendamos leer las secciones en orden. Si ya conocés la herramienta y necesitás un detalle puntual, usá el índice de abajo.</p>
     </section>
 
-    <section class="section">
-      <h2>2. Top Navigation Bar</h2>
+    <nav class="toc" aria-label="Índice">
+      <a href="#proposito">1. Propósito general</a>
+      <a href="#arquitectura">2. Arquitectura del sistema</a>
+      <a href="#vinculacion">3. Pantalla de vinculación</a>
+      <a href="#barra">4. Barra superior del panel</a>
+      <a href="#hero">5. Encabezado y cuadrícula</a>
+      <a href="#kpi">6. Tarjetas de métricas (KPI)</a>
+      <a href="#filtros">7. Barra de filtros</a>
+      <a href="#lista">8. Lista de conversaciones</a>
+      <a href="#tarjeta">9. Anatomía de una conversación</a>
+      <a href="#estados">10. Estados y colores</a>
+      <a href="#conflictos">11. Niveles de conflicto</a>
+      <a href="#modal">12. Modal de detalle</a>
+      <a href="#tabs">13. Pestañas del modal</a>
+      <a href="#resumen">14. Tarjetas de resumen del modal</a>
+      <a href="#gestion">15. Bloque de gestión</a>
+      <a href="#respuesta">16. Zona de respuesta</a>
+      <a href="#historial">17. Historial completo</a>
+      <a href="#rapidas">18. Respuestas rápidas</a>
+      <a href="#bot">19. Flujo del bot automático</a>
+      <a href="#comandos">20. Comandos del bot</a>
+      <a href="#csv">21. Exportación CSV</a>
+      <a href="#tema">22. Modo día / noche</a>
+      <a href="#sesion">23. Cerrar sesión</a>
+      <a href="#configuracion">23b. Panel de configuración</a>
+      <a href="#actualizacion">24. Actualización automática</a>
+      <a href="#sonido">25. Notificación sonora</a>
+      <a href="#impresion">26. Exportar PDF</a>
+      <a href="#errores">27. Mensajes de error</a>
+      <a href="#datos">28. Persistencia de datos</a>
+      <a href="#faq">29. Preguntas frecuentes</a>
+    </nav>
+
+    <section id="proposito" class="section">
+      <h2>1. Propósito general</h2>
+      <p>El panel es el centro operativo del bot de WhatsApp. Sirve para:</p>
+      <ul>
+        <li><strong>Ver todas las conversaciones</strong> que el bot mantuvo o está manteniendo con los contactos.</li>
+        <li><strong>Entender en qué estado</strong> está cada conversación (pendiente, respondida, urgente).</li>
+        <li><strong>Detectar conflictos</strong> y mensajes que requieren atención humana inmediata.</li>
+        <li><strong>Tomar el control manual</strong> de una conversación: responder con texto, mandar archivos, marcar como leída.</li>
+        <li><strong>Clasificar conversaciones</strong> con etiquetas y notas internas.</li>
+        <li><strong>Exportar la información</strong> en CSV para auditoría o análisis externo.</li>
+        <li><strong>Administrar la vinculación</strong> de WhatsApp con la cuenta.</li>
+      </ul>
+      <p>La página está organizada en capas: primero métricas globales (KPI), después filtros, después la lista de conversaciones, y por último un modal con la información completa de la conversación seleccionada.</p>
+    </section>
+
+    <section id="arquitectura" class="section">
+      <h2>2. Arquitectura del sistema</h2>
+      <p>El sistema corre como un proceso de Node.js que cumple dos roles a la vez:</p>
+      <ol>
+        <li><strong>Cliente de WhatsApp Web</strong> a través de la biblioteca Baileys. Es el que recibe los mensajes, ejecuta el bot y envía las respuestas.</li>
+        <li><strong>Servidor HTTP local</strong> que sirve este panel de administración, los archivos subidos y la API interna que usa la interfaz.</li>
+      </ol>
+      <p>Los archivos relevantes son:</p>
+      <ul>
+        <li><code>src/index.js</code>: lógica del bot, conexión con WhatsApp y servidor HTTP.</li>
+        <li><code>public/admin.html</code>: interfaz del panel de operación.</li>
+        <li><code>public/link.html</code>: pantalla de vinculación con QR.</li>
+        <li><code>public/documentation.html</code>: esta misma documentación.</li>
+        <li><code>auth/</code>: credenciales de la sesión vinculada de WhatsApp.</li>
+        <li><code>data/conversations.json</code>: persistencia de todas las conversaciones.</li>
+        <li><code>data/conflict-rules.json</code>: reglas de detección de conflicto editables.</li>
+        <li><code>data/uploads/</code>: archivos subidos por el operador y reenviados a WhatsApp.</li>
+      </ul>
+    </section>
+
+    <section id="vinculacion" class="section">
+      <h2>3. Pantalla de vinculación</h2>
+      <p>Al entrar a la raíz del sitio (<code>/</code>) se carga la pantalla de vinculación. Su función es enlazar el bot con una cuenta de WhatsApp escaneando un código QR.</p>
+      <h3>Qué muestra</h3>
+      <ul>
+        <li><strong>Título y descripción:</strong> explican que solo es necesario escanear el QR una vez.</li>
+        <li><strong>Recuadro del QR:</strong> muestra la imagen del código generado por WhatsApp. Si todavía no hay QR disponible, muestra <em>“Generando QR…”</em>.</li>
+        <li><strong>Indicador de estado:</strong> una franja de color que comunica la situación actual:
+          <ul>
+            <li>Beige (<em>Esperando escaneo del QR</em>): hay un QR válido en pantalla, falta escanear.</li>
+            <li>Verde (<em>Conectado</em>): la sesión está activa y la página redirige automáticamente al panel.</li>
+            <li>Rojo (<em>Sesión cerrada</em>): se cerró la sesión y el sistema está preparando un nuevo QR.</li>
+            <li>Gris (<em>Reconectando</em>): el bot se desconectó por motivos transitorios y vuelve a intentar conectarse.</li>
+          </ul>
+        </li>
+      </ul>
+      <h3>Cómo funciona</h3>
+      <p>La página consulta <code>/api/link-status</code> cada dos segundos y refresca el contenido en función de la respuesta. Cuando recibe el estado <code>connected</code> redirige sola a <code>/admin</code>. Si ya existe una sesión guardada en la carpeta <code>auth/</code> y sigue siendo válida, la redirección ocurre casi de inmediato sin necesidad de escanear nada.</p>
+      <div class="note">
+        <strong>Importante</strong>
+        Mientras esta página está abierta, no hace falta escanear cada vez. Si la sesión expira o se cierra, aparece automáticamente un nuevo QR sin tener que reiniciar el servidor manualmente.
+      </div>
+    </section>
+
+    <section id="barra" class="section">
+      <h2>4. Barra superior del panel</h2>
+      <p>La barra superior está siempre visible (se mantiene fija al hacer scroll). Está compuesta por dos zonas: el bloque de marca a la izquierda y el bloque de acciones a la derecha.</p>
       <div class="grid">
         <article class="card">
-          <h3>Brand Area</h3>
-          <p>The left side title identifies the panel as the service center. It is purely navigational and visual, giving the operator a stable point of reference while working inside the app.</p>
+          <h3>Bloque de marca</h3>
+          <p>El indicador de tres colores (naranja, celeste, verde) junto al texto <em>Centro de Atención</em> identifica al panel. Es puramente visual; sirve como punto de referencia mientras se trabaja.</p>
         </article>
         <article class="card">
-          <h3>Export CSV</h3>
-          <p>This action downloads a spreadsheet-friendly export of all conversations. It is useful for reporting, audits, external analysis, backups, and administrative review outside the panel.</p>
+          <h3>Exportar CSV</h3>
+          <p>Descarga inmediatamente un archivo <code>conversations.csv</code> con todas las conversaciones registradas. Está pensado para auditorías, reportes y backup externo. Detalle completo de columnas en la sección 21.</p>
         </article>
         <article class="card">
-          <h3>Mode Toggle</h3>
-          <p>This switch changes the visual theme of the panel. It affects readability, comfort, and operator preference without changing any conversation data.</p>
+          <h3>Documentación</h3>
+          <p>Abre esta misma página. Existe para evitar que cualquier persona del equipo tenga que preguntar qué significa cada control. Conviene mantenerla actualizada cuando se agregan funciones nuevas.</p>
         </article>
         <article class="card">
-          <h3>Documentation Link</h3>
-          <p>This page itself exists to document the panel in detail so a team member can understand every control and every operational meaning without guessing.</p>
+          <h3>Modo noche / Modo día</h3>
+          <p>Alterna entre el tema claro y el oscuro. Solo afecta la apariencia visual, no toca los datos. La preferencia se guarda en el navegador (<code>localStorage</code>) y se respeta entre sesiones.</p>
+        </article>
+        <article class="card">
+          <h3>Cerrar sesión</h3>
+          <p>Cierra la sesión vinculada de WhatsApp. Después de confirmar, borra las credenciales locales, desconecta el socket y vuelve a la pantalla de QR para volver a enlazar la cuenta. Ver sección 23 para más detalles.</p>
         </article>
       </div>
     </section>
 
-    <section class="section">
-      <h2>3. Main Header Area</h2>
-      <p>The large page heading defines the current workspace. The small cards beneath it summarize the logical building blocks of the system, such as active conversations, human follow-up, filtering capabilities, and quick reply support.</p>
-      <p>This section is not just decorative. It frames the operator mindset before interacting with live data.</p>
-    </section>
-
-    <section class="section">
-      <h2>4. KPI Metric Cards</h2>
-      <p>The colored statistic cards give a fast operational snapshot:</p>
+    <section id="hero" class="section">
+      <h2>5. Encabezado y cuadrícula de áreas</h2>
+      <p>Debajo de la barra superior aparece el título grande del panel (<em>Panel Administración</em>) acompañado de una cuadrícula con cuatro recuadros numerados:</p>
       <ul>
-        <li><strong>Conversations:</strong> total number of stored conversations currently available in the panel.</li>
-        <li><strong>Unread:</strong> conversations or message volume that still requires attention.</li>
-        <li><strong>Pending:</strong> items that are still open or unresolved.</li>
-        <li><strong>Urgent:</strong> conversations requiring fast intervention, often due to escalation or conflict.</li>
-        <li><strong>Waiting for reply:</strong> conversations where the contact wrote after the last bot/admin reply.</li>
+        <li><strong>01 · Conversaciones activas:</strong> recordatorio de que la lista principal contiene todas las conversaciones que el bot está manteniendo o mantuvo.</li>
+        <li><strong>02 · Seguimiento humano:</strong> referencia visual al flujo de derivación a operador, que aparece dentro de cada conversación.</li>
+        <li><strong>03 · Filtros y estados:</strong> indica que existen controles de búsqueda y filtrado debajo.</li>
+        <li><strong>04 · Respuestas rápidas:</strong> recuerda que dentro del modal hay plantillas de respuesta listas para usar.</li>
       </ul>
-      <p>These cards are meant for quick prioritization before diving into the conversation list.</p>
+      <p>No son botones: son un mapa visual de las capacidades del panel para que un operador nuevo entienda rápido qué cosas puede esperar.</p>
     </section>
 
-    <section class="section">
-      <h2>5. Filters Toolbar</h2>
+    <section id="kpi" class="section">
+      <h2>6. Tarjetas de métricas (KPI)</h2>
+      <p>Justo después del encabezado aparece una fila de cinco tarjetas de colores, levemente rotadas, con valores numéricos. Sirven para priorizar de un vistazo, sin abrir ninguna conversación.</p>
+      <table>
+        <thead>
+          <tr><th>Tarjeta</th><th>Qué cuenta</th><th>Cómo se calcula</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Conversaciones</td><td>Total de conversaciones guardadas.</td><td>Cantidad de elementos en la lista, sin filtros.</td></tr>
+          <tr><td>No leídos</td><td>Mensajes sin revisar.</td><td>Suma del campo <code>unreadCount</code> de cada conversación.</td></tr>
+          <tr><td>Pendientes</td><td>Conversaciones aún no resueltas.</td><td>Cantidad de conversaciones con estado <span class="badge pendiente">Pendiente</span>.</td></tr>
+          <tr><td>Urgentes</td><td>Conversaciones marcadas como urgentes.</td><td>Cantidad de conversaciones con estado <span class="badge urgente">Urgente</span>. Pueden venir de derivación con conflicto o de marcado manual.</td></tr>
+          <tr><td>Esperando respuesta</td><td>Contactos que escribieron después de la última respuesta del bot.</td><td>Conversaciones donde <code>lastIncomingAt &gt; lastOutgoingAt</code> (o donde no hubo aún respuesta).</td></tr>
+        </tbody>
+      </table>
+      <p>Las tarjetas siempre reflejan el total global, no se filtran junto con la búsqueda. Eso permite mantener una visión de conjunto incluso cuando estás explorando un subconjunto.</p>
+    </section>
+
+    <section id="filtros" class="section">
+      <h2>7. Barra de filtros</h2>
+      <p>Debajo de las métricas aparece la barra de filtros. Todos los filtros se combinan con <em>AND</em>: una conversación aparece solo si pasa todos los filtros activos. Los cambios se aplican en tiempo real, no hay botón <em>Aplicar</em>.</p>
       <div class="grid">
         <article class="card">
-          <h3>Search by name, phone, or message</h3>
-          <p>This text input searches conversation-level metadata. It allows the operator to locate a contact by visible name, WhatsApp identifier, or most recent message content.</p>
+          <h3>Buscar por nombre, teléfono o mensaje</h3>
+          <p>Campo de texto libre. Busca coincidencias parciales en:</p>
+          <ul>
+            <li>el nombre visible del contacto (<code>name</code>);</li>
+            <li>el identificador JID de WhatsApp (que incluye el número de teléfono);</li>
+            <li>el último mensaje registrado en la conversación.</li>
+          </ul>
+          <p>No es sensible a mayúsculas. Sirve para encontrar rápido un contacto sin acordarse de qué número exacto tenía.</p>
         </article>
         <article class="card">
-          <h3>Tag filter</h3>
-          <p>This field filters conversations by internal classification tags such as human handoff, risk, online, appointment, or any other custom operational label.</p>
+          <h3>Filtrar por etiqueta</h3>
+          <p>Busca coincidencias parciales dentro de las etiquetas internas de cada conversación. Útil cuando se trabaja con clasificaciones como <em>operador</em>, <em>riesgo</em>, <em>primera vez</em>, <em>online</em>, etc.</p>
         </article>
         <article class="card">
-          <h3>Date range filters</h3>
-          <p>These inputs constrain results by activity window. They are useful for reviewing only recent traffic, daily traffic, or a specific operational period.</p>
+          <h3>Desde / Hasta</h3>
+          <p>Dos campos de fecha que limitan los resultados a un rango de actividad (basado en <code>lastMessageAt</code>). Útil para revisar tráfico del día, de una semana o de un evento puntual.</p>
         </article>
         <article class="card">
-          <h3>Status filter</h3>
-          <p>This dropdown narrows results by conversation status, such as pending, answered, or urgent.</p>
+          <h3>Estado</h3>
+          <p>Desplegable que filtra por estado operativo: <em>Todos</em>, <em>Pendiente</em>, <em>Respondida</em>, <em>Urgente</em>. El detalle de cada estado está en la sección 10.</p>
         </article>
         <article class="card">
-          <h3>Refresh button</h3>
-          <p>This manually reloads panel data from the backend in case the operator wants an explicit refresh instead of waiting for the auto-polling cycle.</p>
+          <h3>Actualizar</h3>
+          <p>Fuerza una recarga inmediata de la lista. No es estrictamente necesario porque el panel se actualiza solo cada 5 segundos, pero sirve cuando se acaba de hacer un cambio y no se quiere esperar.</p>
         </article>
         <article class="card">
-          <h3>Trash icon / clear filters</h3>
-          <p>This control resets every filter field back to its neutral state, making the full conversation list visible again without manually clearing each input one by one.</p>
+          <h3>Icono 🗑 (Limpiar filtros)</h3>
+          <p>Vuelve todos los filtros a su valor neutro de una sola vez. Equivale a vaciar manualmente cada campo y dejar el desplegable en <em>Todos los estados</em>.</p>
         </article>
       </div>
     </section>
 
-    <section class="section">
-      <h2>6. Conversation List</h2>
-      <p>Each row in the list is a compact operational summary of one WhatsApp conversation.</p>
+    <section id="lista" class="section">
+      <h2>8. Lista de conversaciones</h2>
+      <p>La lista central muestra una tarjeta por cada conversación, ordenadas de la más reciente a la más antigua según <code>lastMessageAt</code>. Si no hay nada que mostrar, aparece el mensaje <em>“No hay conversaciones para mostrar.”</em></p>
+      <p>Cada tarjeta es un resumen operativo. Permite tomar acciones rápidas sin tener que abrir el detalle completo, y abrir el modal cuando hace falta más contexto.</p>
+    </section>
+
+    <section id="tarjeta" class="section">
+      <h2>9. Anatomía de una conversación en la lista</h2>
+      <p>Cada tarjeta tiene cuatro filas lógicas:</p>
+      <h3>Fila superior</h3>
       <ul>
-        <li><strong>Contact name:</strong> the display name captured from WhatsApp.</li>
-        <li><strong>JID:</strong> the raw WhatsApp identifier, useful for support and debugging.</li>
-        <li><strong>Status badge:</strong> the current operational state of the conversation.</li>
-        <li><strong>Conflict badge:</strong> if present, this indicates whether the conversation includes mild conflict, aggression, or threat-level language.</li>
-        <li><strong>Unread badge:</strong> indicates new messages not yet reviewed from the panel workflow.</li>
-        <li><strong>Message count:</strong> the total number of stored messages in that thread.</li>
-        <li><strong>Tag strip:</strong> labels used to classify the conversation operationally.</li>
-        <li><strong>Preview:</strong> the latest message summary.</li>
-        <li><strong>Last bot reply / waiting line:</strong> shows whether the contact is currently waiting for a response.</li>
-        <li><strong>Action controls:</strong> allow quick status change, mark as read, or open the full details modal.</li>
+        <li><strong>Nombre:</strong> nombre que WhatsApp expone (campo <em>push name</em>). Puede ser un nombre, un alias o estar vacío.</li>
+        <li><strong>JID:</strong> identificador interno de WhatsApp (ej. <code>5491100000000@s.whatsapp.net</code>). Sirve para soporte técnico y para identificar contactos sin ambigüedad.</li>
+        <li><strong>Pastilla de estado</strong> (ver sección 10).</li>
+        <li><strong>Pastilla de conflicto</strong>, si la conversación tiene un nivel detectado (ver sección 11).</li>
+        <li><strong>Pastilla de no leídos</strong>, si hay mensajes nuevos del contacto.</li>
+        <li><strong>Contador de mensajes:</strong> cantidad total de mensajes que existen en el historial.</li>
+      </ul>
+      <h3>Fila de etiquetas</h3>
+      <p>Lista de etiquetas asignadas a la conversación. La etiqueta <code>operador</code> se muestra como <em>“Derivado a humano”</em> para que el operador entienda el motivo sin necesidad de conocer la convención técnica.</p>
+      <h3>Vista previa</h3>
+      <p>Muestra el contenido del último mensaje, recortado a 120 caracteres con un sufijo <em>“…”</em> si es más largo. Si la conversación todavía no tiene mensajes registrados, dice <em>“Sin mensajes”</em>.</p>
+      <h3>Bloque de metadatos</h3>
+      <ul>
+        <li><strong>Última respuesta del bot:</strong> fecha y hora del último mensaje saliente. Sirve para saber cuándo fue la última vez que el sistema (o un operador) respondió.</li>
+        <li><strong>Esperando respuesta:</strong> tiempo transcurrido desde el último mensaje del contacto si todavía no hubo respuesta. Si el contacto no está esperando, muestra <em>“No”</em>.</li>
+      </ul>
+      <h3>Fila inferior (acciones)</h3>
+      <ul>
+        <li><strong>Última actividad:</strong> fecha del mensaje más reciente, sea entrante o saliente.</li>
+        <li><strong>Desplegable de estado:</strong> permite cambiar el estado de la conversación sin abrir el modal.</li>
+        <li><strong>Marcar leída:</strong> pone el contador de no leídos en cero. Útil para revisar avisos sin entrar al detalle.</li>
+        <li><strong>Ver detalles:</strong> abre el modal con toda la información.</li>
+        <li><strong>Eliminar:</strong> borra la conversación de la base. Pide confirmación porque la acción no se puede deshacer; si el contacto vuelve a escribir queda registrado como contacto nuevo.</li>
       </ul>
     </section>
 
-    <section class="section">
-      <h2>7. Conversation Modal</h2>
-      <p>The modal is the detailed workspace for a single conversation. It contains two tabs and multiple information layers.</p>
+    <section id="estados" class="section">
+      <h2>10. Estados y colores</h2>
+      <p>El estado refleja la situación operativa de la conversación. Sirve para ordenar el trabajo del equipo.</p>
+      <ul>
+        <li><span class="badge pendiente">Pendiente</span> es el estado por defecto. Significa que hay algo por revisar o responder. El bot pone este estado automáticamente cuando llega un mensaje nuevo.</li>
+        <li><span class="badge respondida">Respondida</span> se aplica cuando el operador o el bot ya respondieron y no queda nada pendiente. Si después llega un mensaje nuevo del contacto, el estado vuelve a <em>Pendiente</em> automáticamente.</li>
+        <li><span class="badge urgente">Urgente</span> indica una conversación que necesita atención inmediata. El bot la asigna sola cuando detecta agresión o amenaza, y el operador puede ponerla manualmente.</li>
+      </ul>
+    </section>
+
+    <section id="conflictos" class="section">
+      <h2>11. Niveles de conflicto</h2>
+      <p>Cuando un mensaje entrante contiene palabras o frases definidas en <code>data/conflict-rules.json</code>, el sistema clasifica el conflicto y deriva la conversación a un operador humano.</p>
+      <ul>
+        <li><span class="badge leve">Leve</span>: lenguaje inapropiado o grosería. Se deriva al humano pero se mantiene como <em>Pendiente</em>.</li>
+        <li><span class="badge agresion">Agresión</span>: insultos directos o descalificación. Se deriva al humano y se marca como <em>Urgente</em>.</li>
+        <li><span class="badge amenaza">Amenaza</span>: amenazas de denuncia, acusaciones o riesgo. Se deriva como <em>Urgente</em> y agrega además la etiqueta <code>riesgo</code>.</li>
+      </ul>
+      <p>El sistema mantiene reglas separadas por nivel: una lista de frases y una razón explicativa (<code>reason</code>) que después aparece como motivo de derivación en el modal.</p>
+    </section>
+
+    <section id="modal" class="section">
+      <h2>12. Modal de detalle</h2>
+      <p>Al hacer clic en <em>Ver detalles</em> en una tarjeta, se abre el modal con la información completa de esa conversación. Es el espacio principal de trabajo del operador. El modal:</p>
+      <ul>
+        <li>Cubre la pantalla con un fondo oscuro semitransparente para enfocar la atención.</li>
+        <li>Se puede cerrar con el botón <em>Cerrar</em>, haciendo clic fuera del panel central, o tocando el botón <em>Exportar PDF</em> seguido de imprimir.</li>
+        <li>El botón <em>Eliminar conversación</em> de la cabecera borra el hilo entero después de confirmar; el modal se cierra y la lista se refresca.</li>
+        <li>Muestra el nombre del contacto en grande, junto con el JID, la fecha del primer mensaje y la fecha de la última actividad.</li>
+        <li>Si la conversación tenía mensajes sin leer, los marca como leídos al abrirse.</li>
+      </ul>
+    </section>
+
+    <section id="tabs" class="section">
+      <h2>13. Pestañas del modal</h2>
+      <p>El modal tiene dos pestañas, conmutables sin perder la información cargada:</p>
       <div class="grid">
         <article class="card">
-          <h3>Details tab</h3>
-          <p>Shows structured metadata, internal notes, management actions, escalation reason, conflict level, and the full chronological history.</p>
+          <h3>Detalles</h3>
+          <p>Es la pestaña por defecto. Muestra las tarjetas de resumen, el bloque de gestión y el historial completo de mensajes en formato lista. Ideal para entender el estado y tomar decisiones.</p>
         </article>
         <article class="card">
-          <h3>Reply tab</h3>
-          <p>Shows the conversation in a chat-like layout and provides the manual reply composer, quick replies, file upload, and send action.</p>
+          <h3>Responder</h3>
+          <p>Muestra la conversación en formato chat (burbujas) y un compositor abajo con plantillas de respuesta rápida, carga de archivos, campo de texto y botón de enviar. Es el espacio para tomar el control manual.</p>
         </article>
       </div>
     </section>
 
-    <section class="section">
-      <h2>8. Detail Cards Inside the Modal</h2>
-      <p>The summary cards inside the modal explain the conversation state from multiple angles:</p>
+    <section id="resumen" class="section">
+      <h2>14. Tarjetas de resumen del modal</h2>
+      <p>Dentro de la pestaña <em>Detalles</em>, arriba de todo, hay siete tarjetas cortas que resumen el contexto operativo. Cada una existe para responder una pregunta concreta del operador:</p>
+      <table>
+        <thead>
+          <tr><th>Tarjeta</th><th>Pregunta que responde</th><th>Origen del dato</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Estado</td><td>¿En qué situación está esta conversación?</td><td><code>status</code> con la pastilla coloreada.</td></tr>
+          <tr><td>No leídos</td><td>¿Hay mensajes sin revisar?</td><td><code>unreadCount</code>.</td></tr>
+          <tr><td>Etiquetas</td><td>¿Cómo está clasificada?</td><td><code>tags</code>, incluyendo etiquetas automáticas como <em>operador</em>.</td></tr>
+          <tr><td>Última respuesta del bot</td><td>¿Cuándo respondió el sistema por última vez?</td><td><code>lastOutgoingAt</code>.</td></tr>
+          <tr><td>Tiempo sin responder</td><td>¿Cuánto hace que el contacto espera?</td><td>Diferencia entre <code>lastIncomingAt</code> y el momento actual.</td></tr>
+          <tr><td>Motivo de derivación</td><td>¿Por qué fue derivada al humano?</td><td><code>escalationReason</code>.</td></tr>
+          <tr><td>Nivel de conflicto</td><td>¿Detectó algo riesgoso?</td><td><code>conflictLevel</code>, con la pastilla coloreada.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="gestion" class="section">
+      <h2>15. Bloque de gestión</h2>
+      <p>Es el área que permite al operador modificar metadatos de la conversación sin enviar mensajes.</p>
       <ul>
-        <li><strong>Status:</strong> current operational label.</li>
-        <li><strong>Unread:</strong> unread count from the operator perspective.</li>
-        <li><strong>Tags:</strong> internal categorization labels.</li>
-        <li><strong>Last bot reply:</strong> latest outgoing answer from the automated or manual side.</li>
-        <li><strong>Time waiting for response:</strong> indicates how long the contact has been waiting since their latest incoming message.</li>
-        <li><strong>Escalation reason:</strong> the reason why the conversation was sent to human follow-up.</li>
-        <li><strong>Conflict level:</strong> severity level of detected conflict, if any.</li>
+        <li><strong>Selector de estado:</strong> cambia entre <em>Pendiente</em>, <em>Respondida</em> y <em>Urgente</em>. La pastilla de estado se actualiza al instante pero el cambio no se guarda hasta presionar <em>Guardar cambios</em>.</li>
+        <li><strong>Marcar leída:</strong> deja el contador de no leídos en cero al instante (sin pasar por <em>Guardar cambios</em>).</li>
+        <li><strong>Guardar cambios:</strong> persiste de una sola vez el estado, las etiquetas y las notas. Después de guardar, refresca la lista y vuelve a cargar el modal con la información actualizada.</li>
+        <li><strong>Etiquetas:</strong> campo de texto donde se separan etiquetas por coma (ej. <code>turno, online, primera vez</code>). Se aceptan como máximo 10 etiquetas, sin espacios al inicio o final.</li>
+        <li><strong>Notas internas:</strong> área de texto libre para anotaciones del equipo. Lo que se escriba acá no se envía al contacto: queda solo dentro del panel.</li>
+      </ul>
+      <div class="note">
+        <strong>Tip</strong>
+        Las notas son ideales para dejar contexto entre operadores cuando alguien tiene que retomar una conversación que empezó otra persona.
+      </div>
+    </section>
+
+    <section id="respuesta" class="section">
+      <h2>16. Zona de respuesta</h2>
+      <p>En la pestaña <em>Responder</em>, debajo del hilo de chat, está el compositor. Cada control:</p>
+      <ul>
+        <li><strong>Respuestas rápidas del operador:</strong> al elegir una plantilla, el texto se carga en el campo de mensaje. Se puede editar antes de enviar. Las plantillas están definidas en el backend (ver sección 18).</li>
+        <li><strong>Selector de archivo:</strong> permite subir una imagen, audio, video, PDF o documento. El archivo se manda al contacto por WhatsApp y se guarda en <code>data/uploads/</code> para poder revisarlo después desde el historial.</li>
+        <li><strong>Cuadro de texto / caption:</strong> sirve como texto del mensaje si no hay archivo, o como caption del archivo si hay uno seleccionado. Para audio se ignora.</li>
+        <li><strong>Enviar respuesta:</strong> ejecuta el envío. Si hay un archivo, llama al endpoint <code>/reply-media</code>; si no, llama a <code>/reply</code>. Después del envío, el estado pasa a <em>Respondida</em> automáticamente y se limpian las marcas de espera humana, conflicto y derivación.</li>
       </ul>
     </section>
 
-    <section class="section">
-      <h2>9. Management Area</h2>
-      <p>This block is where the operator manages conversation metadata:</p>
+    <section id="historial" class="section">
+      <h2>17. Historial completo</h2>
+      <p>En la pestaña <em>Detalles</em>, debajo del bloque de gestión, está el historial cronológico de mensajes en formato lista. En la pestaña <em>Responder</em>, el mismo historial se muestra en formato chat (burbujas).</p>
+      <p>Cada mensaje incluye:</p>
       <ul>
-        <li><strong>Status selector:</strong> updates the operational state.</li>
-        <li><strong>Mark as read:</strong> clears pending unread count.</li>
-        <li><strong>Save changes:</strong> persists notes, tags, and status.</li>
-        <li><strong>Tags input:</strong> stores custom labels separated by commas.</li>
-        <li><strong>Notes field:</strong> internal-only notes for the operator team.</li>
+        <li><strong>Dirección:</strong> <em>Contacto</em> (entrante) o <em>Bot/Admin</em> (saliente). Los salientes incluyen tanto las respuestas automáticas del bot como las respuestas manuales del operador.</li>
+        <li><strong>Marca de tiempo:</strong> formato corto en zona horaria del navegador (es-AR).</li>
+        <li><strong>Contenido:</strong> texto plano, o vista previa de imagen, audio (con reproductor), video (con reproductor) o enlace de descarga para documentos.</li>
+      </ul>
+      <p>El historial es útil para auditoría, traspaso entre operadores y revisión de calidad de las respuestas del bot.</p>
+    </section>
+
+    <section id="rapidas" class="section">
+      <h2>18. Respuestas rápidas</h2>
+      <p>Son plantillas predefinidas en el backend que cargan automáticamente el texto del campo de respuesta. Actualmente están configuradas las siguientes:</p>
+      <ul>
+        <li><strong>Seguimiento humano:</strong> avisa al contacto que un operador va a continuar la atención. Útil cuando el bot ya derivó la conversación.</li>
+        <li><strong>Pedir datos:</strong> solicita nombre, apellido y detalle de la consulta. Se usa cuando llega un pedido demasiado genérico.</li>
+        <li><strong>Confirmar recepción:</strong> avisa que el mensaje fue recibido y se va a responder en breve. Sirve para descomprimir mientras el equipo trabaja en una respuesta más completa.</li>
+      </ul>
+      <p>Las plantillas se pueden ampliar editando la constante <code>QUICK_REPLIES</code> en <code>src/index.js</code>.</p>
+    </section>
+
+    <section id="bot" class="section">
+      <h2>19. Flujo del bot automático</h2>
+      <p>Cuando llega un mensaje desde WhatsApp, el sistema lo procesa así:</p>
+      <ol>
+        <li>Lo guarda en el historial como mensaje entrante y actualiza la conversación.</li>
+        <li>Si nunca antes habló con ese contacto, le envía el menú principal y termina.</li>
+        <li>Detecta si el texto contiene insultos, agresiones o amenazas. Si los detecta, deriva al humano con el motivo y el nivel correspondiente.</li>
+        <li>Detecta comandos especiales (ver sección 20).</li>
+        <li>Detecta intenciones del menú (sacar turno, cambiar turno, cancelar, dirección, atención online, primera consulta, hablar con humano).</li>
+        <li>Si la conversación ya tenía un tema en curso, intenta responder dentro de ese tema.</li>
+        <li>Si todo lo anterior falla, responde el saludo del menú si el texto es un saludo, o el mensaje por defecto definido en <code>DEFAULT_REPLY</code>.</li>
+      </ol>
+      <p>El menú principal incluye opciones para turnos, dirección del consultorio, atención online y primera consulta. El bot intenta saludar al contacto por nombre la primera vez y después evita repetir el saludo en cada respuesta.</p>
+    </section>
+
+    <section id="comandos" class="section">
+      <h2>20. Comandos del bot</h2>
+      <p>Los comandos que empiezan con <code>!</code> tienen prioridad sobre todo lo demás. Sirven para diagnóstico y pruebas:</p>
+      <ul>
+        <li><code>!help</code>: muestra una ayuda corta del bot.</li>
+        <li><code>!time</code>: devuelve la hora actual según la variable <code>TIMEZONE</code>.</li>
+        <li><code>!about</code>: informa el nombre del bot y la tecnología utilizada.</li>
+        <li><code>!ping</code>: responde con <em>pong 🏓</em>. Sirve para verificar que el bot está vivo.</li>
+        <li><code>!broadcast</code>: solo si el remitente coincide con <code>OWNER_JID</code>. Manda un mensaje de prueba a todos los contactos listados en <code>ALLOWED_BROADCAST</code>.</li>
       </ul>
     </section>
 
-    <section class="section">
-      <h2>10. Reply Area</h2>
-      <p>This is the interactive operator reply workspace.</p>
+    <section id="csv" class="section">
+      <h2>21. Exportación CSV</h2>
+      <p>El botón <em>Exportar CSV</em> de la barra superior genera un archivo con todas las conversaciones. El archivo está codificado en UTF-8 con BOM para abrirlo correctamente en Excel, y usa <code>;</code> como separador. Las columnas son:</p>
+      <table>
+        <thead><tr><th>Columna</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td>jid</td><td>Identificador WhatsApp del contacto.</td></tr>
+          <tr><td>nombre</td><td>Nombre visible del contacto.</td></tr>
+          <tr><td>estado</td><td>Estado operativo: pendiente / respondida / urgente.</td></tr>
+          <tr><td>no_leidos</td><td>Cantidad de mensajes sin leer.</td></tr>
+          <tr><td>esperando_humano</td><td>si / no.</td></tr>
+          <tr><td>tema_actual</td><td>Última intención detectada por el bot.</td></tr>
+          <tr><td>motivo_derivacion</td><td>Razón por la que se derivó al humano.</td></tr>
+          <tr><td>nivel_conflicto</td><td>leve / agresion / amenaza, o vacío.</td></tr>
+          <tr><td>etiquetas</td><td>Etiquetas separadas por coma.</td></tr>
+          <tr><td>primera_actividad</td><td>Fecha del primer mensaje registrado.</td></tr>
+          <tr><td>ultima_actividad</td><td>Fecha del mensaje más reciente.</td></tr>
+          <tr><td>ultima_entrada</td><td>Fecha del último mensaje del contacto.</td></tr>
+          <tr><td>ultima_salida</td><td>Fecha del último mensaje del bot/admin.</td></tr>
+          <tr><td>ultimo_mensaje</td><td>Texto preview del último mensaje.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="tema" class="section">
+      <h2>22. Modo día / Modo noche</h2>
+      <p>El botón <em>Modo noche</em> alterna entre dos esquemas de color. El modo claro usa un fondo crema cálido y texto negro; el modo oscuro usa fondo casi negro y texto crema, pensado para sesiones largas o luz baja.</p>
+      <p>La preferencia se guarda en <code>localStorage</code> con la clave <code>admin-theme</code>. Al recargar la página el panel respeta la última elección.</p>
+    </section>
+
+    <section id="sesion" class="section">
+      <h2>23. Cerrar sesión</h2>
+      <p>El botón <em>Cerrar sesión</em> está pensado para desvincular el bot del número de WhatsApp con el que está conectado. Su flujo es:</p>
+      <ol>
+        <li>Pide confirmación al operador (porque después hay que volver a escanear el QR).</li>
+        <li>Envía una solicitud <code>POST</code> al endpoint <code>/api/logout</code>.</li>
+        <li>El backend ejecuta <code>logout()</code> sobre el socket de Baileys, cierra el socket y borra el contenido de la carpeta <code>auth/</code>.</li>
+        <li>El backend reinicia el bot para generar un QR nuevo y deja el estado en <em>logged_out</em>.</li>
+        <li>El navegador redirige a la raíz (<code>/</code>), donde la pantalla de vinculación muestra el nuevo QR para escanear.</li>
+      </ol>
+      <div class="note">
+        <strong>Cuándo conviene usarlo</strong>
+        Cerrar sesión es útil si querés cambiar el número de WhatsApp asociado al bot, si necesitás liberar el dispositivo, o si sospechás que la sesión está dañada y querés un arranque limpio.
+      </div>
+    </section>
+
+    <section id="configuracion" class="section">
+      <h2>23b. Panel de configuración</h2>
+      <p>Accesible desde el botón <em>Configuración</em> de la barra superior. Permite editar todos los textos que el bot envía automáticamente y gestionar las listas auxiliares del sistema sin tocar el código.</p>
+      <h3>Mensaje principal</h3>
       <ul>
-        <li><strong>Quick replies:</strong> predefined templates to speed up common answers.</li>
-        <li><strong>Attachment input:</strong> used to upload images, audio, video, and documents for WhatsApp delivery.</li>
-        <li><strong>Text / caption field:</strong> can be used as a normal text reply or as the caption for a selected attachment.</li>
-        <li><strong>Send reply button:</strong> sends text-only replies or media + caption depending on what is currently filled in.</li>
+        <li><strong>Mensaje del menú:</strong> texto que recibe el contacto la primera vez que escribe, o cuando dice <em>hola</em>, <em>menu</em> o <em>turno</em>.</li>
+        <li><strong>Mensaje por defecto:</strong> respuesta de fallback cuando el bot no reconoce ninguna intención.</li>
+      </ul>
+      <h3>Respuestas por intención</h3>
+      <p>Siete textos editables, uno por cada tema reconocido: turnos (sacar/cambiar/cancelar), dirección del consultorio, atención online, primera consulta y cambio de online a presencial.</p>
+      <h3>Derivación a humano</h3>
+      <p>Texto único que el bot envía cuando deriva la conversación a un operador (por pedido del contacto o por detección de conflicto).</p>
+      <h3>Seguimientos por tema en curso</h3>
+      <p>Siete textos cortos que el bot usa cuando el contacto sigue escribiendo dentro de un tema ya activo, o mientras espera atención humana.</p>
+      <h3>Comandos del bot</h3>
+      <p>Ocho textos correspondientes a las respuestas de los comandos <code>!help</code>, <code>!time</code>, <code>!about</code>, <code>!ping</code> y los cuatro mensajes asociados a <code>!broadcast</code>.</p>
+      <p>Algunos campos aceptan variables entre llaves dobles que el bot reemplaza al enviar: <code>{{botName}}</code>, <code>{{time}}</code>, <code>{{timezone}}</code>, <code>{{count}}</code>. La UI muestra debajo de cada campo las variables disponibles.</p>
+      <h3>Respuestas rápidas del operador</h3>
+      <p>Lista con CRUD completo (alta, baja, modificación). Cada entrada tiene un <strong>ID interno</strong>, una <strong>etiqueta visible</strong> (la que aparece en el desplegable del modal) y el <strong>texto</strong> que se envía. Si no se especifica un ID, se autogenera uno.</p>
+      <h3>Reglas de conflicto</h3>
+      <p>Permite editar cada nivel (<em>Leve</em>, <em>Agresión</em>, <em>Amenaza</em>) con su motivo de derivación y la lista de frases disparadoras. Las frases se comparan contra el mensaje normalizado (minúsculas, sin acentos), por lo que conviene escribirlas también normalizadas. Soporta alta y baja de frases por nivel.</p>
+      <h3>Guardar y descartar</h3>
+      <p>La barra inferior es <em>sticky</em>. Mientras no haya cambios, el botón <em>Guardar cambios</em> queda deshabilitado. <em>Descartar cambios</em> recarga la última versión persistida sin guardar.</p>
+      <div class="note">
+        <strong>Persistencia</strong>
+        Los cambios se guardan en <code>data/messages.json</code> y <code>data/conflict-rules.json</code>. El bot lee de memoria en cada respuesta, así que los cambios surten efecto en el siguiente mensaje sin reiniciar el proceso.
+      </div>
+    </section>
+
+    <section id="actualizacion" class="section">
+      <h2>24. Actualización automática</h2>
+      <p>El panel consulta el endpoint <code>/api/conversations</code> cada 5 segundos para reflejar los cambios en tiempo casi real. Si llega un mensaje nuevo entre dos refrescos, se ve sin recargar la página.</p>
+      <p>Además, el título del navegador refleja la cantidad de mensajes no leídos entre paréntesis (ej. <em>(3) Conversaciones WhatsApp</em>), para que se note el panel incluso desde otra pestaña.</p>
+    </section>
+
+    <section id="sonido" class="section">
+      <h2>25. Notificación sonora</h2>
+      <p>Cuando entra un mensaje nuevo, el panel reproduce un breve tono (una onda senoidal de 880 Hz durante 250 ms). El sonido solo se activa después de que el usuario haya interactuado con la página (clic o tecla), porque los navegadores no permiten audio automático sin gesto previo.</p>
+      <p>No es configurable desde la UI: si molesta, se puede comentar la llamada a <code>playNotificationSound()</code> en <code>admin.html</code>.</p>
+    </section>
+
+    <section id="impresion" class="section">
+      <h2>26. Exportar PDF</h2>
+      <p>Dentro del modal hay un botón <em>Exportar PDF</em>. Lo que hace es abrir el cuadro de diálogo nativo de impresión del navegador. Las hojas de estilo incluyen una sección <code>@media print</code> que oculta los controles de UI y deja solo el contenido de la conversación, para generar un PDF limpio.</p>
+      <p>Para un PDF prolijo conviene elegir <em>Guardar como PDF</em> en el diálogo de impresión.</p>
+    </section>
+
+    <section id="errores" class="section">
+      <h2>27. Mensajes de error</h2>
+      <p>Cuando una operación falla (red caída, JID inválido, archivo vacío, WhatsApp desconectado, etc.), el panel muestra una alerta del navegador con el mensaje recibido del backend. Los códigos de error más habituales son:</p>
+      <ul>
+        <li><strong>400 - El archivo no puede estar vacío:</strong> se intentó subir un archivo sin contenido.</li>
+        <li><strong>400 - El mensaje no puede estar vacío:</strong> se intentó enviar una respuesta de texto sin texto.</li>
+        <li><strong>404 - Conversation not found:</strong> se está intentando operar sobre un JID que no existe en el sistema.</li>
+        <li><strong>503 - WhatsApp no está conectado:</strong> el bot perdió la sesión y hay que volver a vincular.</li>
       </ul>
     </section>
 
-    <section class="section">
-      <h2>11. Full History</h2>
-      <p>The history section keeps the original chronology of the conversation. It is useful for quality review, support context, operational auditing, and continuity when different operators handle the same contact.</p>
-      <p>Messages may include plain text, media previews, downloadable documents, timestamps, and sender direction information.</p>
+    <section id="datos" class="section">
+      <h2>28. Persistencia de datos</h2>
+      <p>El panel no usa base de datos externa. Toda la información operativa vive en archivos locales:</p>
+      <ul>
+        <li><code>data/conversations.json</code>: array con todas las conversaciones (nombre, estado, etiquetas, mensajes, etc.). Se reescribe cada vez que hay un cambio.</li>
+        <li><code>data/conflict-rules.json</code>: reglas de detección de conflicto. Si no existe al iniciar, se genera con valores por defecto.</li>
+        <li><code>data/uploads/</code>: archivos enviados desde el panel. Cada archivo tiene un nombre único con UUID para evitar colisiones.</li>
+        <li><code>auth/</code>: credenciales de la sesión vinculada a WhatsApp (manejadas por Baileys).</li>
+      </ul>
+      <div class="note">
+        <strong>Backup recomendado</strong>
+        Para una copia de seguridad, basta con archivar las carpetas <code>data/</code> y <code>auth/</code>. Para mover el bot a otro servidor sin perder estado, se copian las dos carpetas y se arranca de nuevo.
+      </div>
     </section>
 
-    <section class="section">
-      <h2>12. Linking Screen</h2>
-      <p>The root route of the application shows the WhatsApp QR linking screen. If there is no valid session, the operator scans the QR once. After successful linking, the interface redirects automatically to the admin panel. If the saved WhatsApp session remains valid on the server, that linking step does not need to be repeated.</p>
+    <section id="faq" class="section">
+      <h2>29. Preguntas frecuentes</h2>
+      <h3>¿Por qué algunas conversaciones tienen nombre vacío?</h3>
+      <p>WhatsApp no siempre comparte el nombre visible (depende de la configuración de privacidad del contacto). En esos casos, queda el JID como referencia.</p>
+      <h3>¿Qué pasa si un operador responde mientras el bot también está respondiendo?</h3>
+      <p>Los mensajes manuales y los automáticos conviven en el mismo hilo. El último envío saliente actualiza <code>lastOutgoingAt</code> y la conversación pasa a <em>Respondida</em>.</p>
+      <h3>¿Se pueden borrar conversaciones?</h3>
+      <p>Sí. Cada tarjeta de la lista tiene un botón <em>Eliminar</em> y el modal de detalle ofrece <em>Eliminar conversación</em>. Ambos piden confirmación antes de borrar. La acción quita la conversación del archivo <code>data/conversations.json</code> y no se puede deshacer. Si el contacto vuelve a escribir, el bot lo trata como contacto nuevo (le envía el menú de bienvenida).</p>
+      <p>Los archivos adjuntos relacionados quedan en <code>data/uploads/</code>: si querés liberar espacio en disco también, hay que borrarlos manualmente.</p>
+      <h3>¿Cómo agrego nuevas palabras al detector de conflictos?</h3>
+      <p>Se edita <code>data/conflict-rules.json</code> agregando frases a la lista correspondiente al nivel deseado (<em>leve</em>, <em>agresion</em>, <em>amenaza</em>). El cambio toma efecto al reiniciar el bot.</p>
+      <h3>¿El bot puede usarse con varias cuentas a la vez?</h3>
+      <p>No en su forma actual. Cada instancia del proceso atiende una sola sesión de WhatsApp.</p>
+      <h3>¿Qué hago si el QR no aparece nunca?</h3>
+      <p>Revisar la consola del servidor para ver si hay errores de Baileys, verificar que la carpeta <code>auth/</code> tenga permisos de escritura, y reiniciar el proceso. Si persiste, borrar manualmente el contenido de <code>auth/</code>.</p>
     </section>
   </main>
+
+  <script>
+    const themeToggleEl = document.getElementById('themeToggle')
+    const storedTheme = localStorage.getItem('admin-theme') || 'light'
+    document.body.dataset.theme = storedTheme
+    themeToggleEl.textContent = storedTheme === 'light' ? 'Modo noche' : 'Modo día'
+
+    themeToggleEl.addEventListener('click', () => {
+      const nextTheme = document.body.dataset.theme === 'light' ? 'dark' : 'light'
+      document.body.dataset.theme = nextTheme
+      localStorage.setItem('admin-theme', nextTheme)
+      themeToggleEl.textContent = nextTheme === 'light' ? 'Modo noche' : 'Modo día'
+    })
+  </script>
 </body>
 </html>

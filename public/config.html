@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configuración - Centro de Atención</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fcfbf8;
+      --bg-soft: #f4efe7;
+      --panel: #ffffff;
+      --panel-soft: #faf7f2;
+      --text: #111111;
+      --muted: #666055;
+      --line: #d9d2c8;
+      --black: #111111;
+      --shadow: 0 16px 34px rgba(17, 17, 17, 0.06);
+      --accent: #f6db7b;
+      --danger: #f5c3bc;
+    }
+
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #111111;
+      --bg-soft: #181818;
+      --panel: #181818;
+      --panel-soft: #202020;
+      --text: #f5efe6;
+      --muted: #b9b0a4;
+      --line: #3f3a35;
+      --black: #f5efe6;
+      --shadow: none;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Whyte", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 28px 100px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      margin: 0 -28px 28px;
+      padding: 14px 28px;
+      backdrop-filter: blur(8px);
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      background: linear-gradient(135deg, #ff7a18, #af002d 70%);
+      box-shadow: 14px 0 0 0 #0ea5e9, 7px 10px 0 0 #22c55e;
+      margin-right: 16px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .button,
+    .button-link {
+      cursor: pointer;
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text);
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font: inherit;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .button.primary,
+    .button-link.primary {
+      background: var(--black);
+      border-color: var(--black);
+      color: var(--bg);
+    }
+
+    .button.danger {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #111;
+    }
+
+    .button:hover,
+    .button-link:hover {
+      transform: translateY(-1px);
+      opacity: 0.94;
+    }
+
+    .button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .hero {
+      padding: 18px 0 12px;
+      max-width: 760px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: clamp(34px, 5vw, 54px);
+      line-height: 0.97;
+      letter-spacing: -0.05em;
+    }
+
+    .hero p {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .section {
+      margin-top: 32px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .section h2 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .section .section-help {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .field label {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .field .hint {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .input,
+    .textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel-soft);
+      color: var(--text);
+      padding: 12px 14px;
+      font: inherit;
+      min-height: 44px;
+    }
+
+    .textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .textarea.tall {
+      min-height: 200px;
+    }
+
+    .textarea.short {
+      min-height: 60px;
+    }
+
+    .list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .list-item {
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .list-item-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .list-item-title {
+      font-weight: 700;
+    }
+
+    .phrase-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .phrase-row .input {
+      flex: 1;
+    }
+
+    .icon-button {
+      cursor: pointer;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font: inherit;
+      font-size: 16px;
+    }
+
+    .icon-button:hover {
+      background: var(--bg-soft);
+    }
+
+    .conflict-block {
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 10px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .conflict-block + .conflict-block {
+      margin-top: 14px;
+    }
+
+    .conflict-title {
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .level-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--line);
+    }
+
+    .level-badge.leve { background: #f8ddb3; color: #111; }
+    .level-badge.agresion { background: #f5c3bc; color: #111; }
+    .level-badge.amenaza { background: #f5c3bc; color: #111; }
+
+    .add-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .add-row .input {
+      flex: 1;
+    }
+
+    .footer-bar {
+      position: sticky;
+      bottom: 16px;
+      margin-top: 32px;
+      padding: 14px 16px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .footer-status {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .footer-status.ok { color: #2f7a3d; }
+    .footer-status.error { color: #b6361a; }
+
+    body[data-theme="dark"] .footer-status.ok { color: #9ad6a8; }
+    body[data-theme="dark"] .footer-status.error { color: #f5a48d; }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 17, 17, 0.45);
+      display: grid;
+      place-items: center;
+      z-index: 30;
+    }
+
+    .loading-overlay[hidden] {
+      display: none;
+    }
+
+    .placeholders {
+      display: inline-flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .placeholder {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border: 1px dashed var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 780px) {
+      .page { padding: 0 16px 100px; }
+      .topbar { margin: 0 -16px 24px; padding: 12px 16px; }
+      .field-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Centro de Atención · Configuración</span>
+      </div>
+      <div class="topbar-actions">
+        <a class="button-link" href="/admin">Volver al panel</a>
+        <a class="button-link" href="/documentation">Documentación</a>
+        <button id="themeToggle" class="button" type="button">Modo noche</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <span class="eyebrow">Panel de mensajes</span>
+      <h1>Configuración del bot</h1>
+      <p>Editá los textos que envía el bot automáticamente, gestioná las respuestas rápidas del operador y mantené las reglas del detector de conflicto. Los cambios se aplican en cuanto presionás <strong>Guardar cambios</strong>.</p>
+      <p>Algunos textos aceptan plantillas entre llaves dobles (ej. <code>{{botName}}</code>). Vas a ver una etiqueta debajo del campo cuando esté disponible.</p>
+    </section>
+
+    <section class="section">
+      <h2>Mensaje principal</h2>
+      <p class="section-help">El bot envía el mensaje del menú cuando alguien le escribe por primera vez o cuando dice <em>hola</em>, <em>menu</em> o <em>turno</em>. El mensaje por defecto se usa como fallback cuando nada coincide.</p>
+      <div class="field">
+        <label for="menuText">Mensaje del menú</label>
+        <textarea id="menuText" class="textarea tall" data-path="menu"></textarea>
+      </div>
+      <div class="field">
+        <label for="defaultReply">Mensaje por defecto</label>
+        <textarea id="defaultReply" class="textarea short" data-path="defaultReply"></textarea>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Respuestas por intención</h2>
+      <p class="section-help">Una intención se dispara cuando el bot reconoce un tema en el mensaje del contacto (por número del menú o por palabras clave). Cada textarea de abajo es lo que el bot responde para ese tema.</p>
+      <div class="field">
+        <label for="intent-appointment">Sacar un turno</label>
+        <p class="hint">Se dispara con <code>1</code>, <em>sacar turno</em>, <em>quiero un turno</em>, etc.</p>
+        <textarea id="intent-appointment" class="textarea" data-path="intents.appointment"></textarea>
+      </div>
+      <div class="field">
+        <label for="intent-reschedule">Cambiar un turno</label>
+        <p class="hint">Se dispara con <code>2</code>, <em>cambiar turno</em>, <em>reprogramar turno</em>.</p>
+        <textarea id="intent-reschedule" class="textarea" data-path="intents.reschedule"></textarea>
+      </div>
+      <div class="field">
+        <label for="intent-cancel">Cancelar un turno</label>
+        <p class="hint">Se dispara con <code>3</code>, <em>cancelar turno</em>, <em>anular turno</em>.</p>
+        <textarea id="intent-cancel" class="textarea" data-path="intents.cancel"></textarea>
+      </div>
+      <div class="field">
+        <label for="intent-location">Dirección del consultorio</label>
+        <p class="hint">Se dispara con <code>6</code>, <em>direccion</em>, <em>ubicacion</em>, <em>como llegar</em>.</p>
+        <textarea id="intent-location" class="textarea" data-path="intents.location"></textarea>
+      </div>
+      <div class="field">
+        <label for="intent-online">Atención online</label>
+        <p class="hint">Se dispara con <code>7</code>, <em>atencion online</em>, <em>videollamada</em>.</p>
+        <textarea id="intent-online" class="textarea" data-path="intents.online"></textarea>
+      </div>
+      <div class="field">
+        <label for="intent-firstConsultation">Primera consulta</label>
+        <p class="hint">Se dispara con <code>8</code>, <em>primera consulta</em>, <em>primera vez</em>.</p>
+        <textarea id="intent-firstConsultation" class="textarea" data-path="intents.firstConsultation"></textarea>
+      </div>
+      <div class="field">
+        <label for="intent-presentialFollowup">Cambio a presencial desde online</label>
+        <p class="hint">Se dispara cuando el contacto pide <em>presencial</em> mientras estaba en el flujo de atención online.</p>
+        <textarea id="intent-presentialFollowup" class="textarea" data-path="intents.presentialFollowup"></textarea>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Derivación a humano</h2>
+      <p class="section-help">Mensaje que el bot envía cuando el contacto pide hablar con una persona o cuando el sistema detecta conflicto. Después de este mensaje, la conversación queda marcada como esperando humano.</p>
+      <div class="field">
+        <label for="humanHandoff">Texto al derivar a humano</label>
+        <textarea id="humanHandoff" class="textarea" data-path="humanHandoff"></textarea>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Seguimientos por tema en curso</h2>
+      <p class="section-help">Cuando una conversación tiene un tema activo y el contacto vuelve a escribir, el bot responde con uno de estos textos según el tema y la situación.</p>
+      <div class="field">
+        <label for="topic-waitingHumanFirstOffer">Esperando humano · primera vez que vuelve a escribir</label>
+        <p class="hint">Después de este mensaje el bot reenvía el menú principal.</p>
+        <textarea id="topic-waitingHumanFirstOffer" class="textarea" data-path="topicFollowups.waitingHumanFirstOffer"></textarea>
+      </div>
+      <div class="field">
+        <label for="topic-waitingHumanRepeat">Esperando humano · mensajes siguientes</label>
+        <textarea id="topic-waitingHumanRepeat" class="textarea short" data-path="topicFollowups.waitingHumanRepeat"></textarea>
+      </div>
+      <div class="field">
+        <label for="topic-appointment">Tema activo · turno</label>
+        <textarea id="topic-appointment" class="textarea" data-path="topicFollowups.appointment"></textarea>
+      </div>
+      <div class="field">
+        <label for="topic-reschedule">Tema activo · reprogramación</label>
+        <textarea id="topic-reschedule" class="textarea" data-path="topicFollowups.reschedule"></textarea>
+      </div>
+      <div class="field">
+        <label for="topic-cancel">Tema activo · cancelación</label>
+        <textarea id="topic-cancel" class="textarea" data-path="topicFollowups.cancel"></textarea>
+      </div>
+      <div class="field">
+        <label for="topic-onlineToPresential">Tema activo · cambio de online a presencial</label>
+        <textarea id="topic-onlineToPresential" class="textarea" data-path="topicFollowups.onlineToPresential"></textarea>
+      </div>
+      <div class="field">
+        <label for="topic-onlineRepeat">Tema activo · online (sigue en online)</label>
+        <textarea id="topic-onlineRepeat" class="textarea" data-path="topicFollowups.onlineRepeat"></textarea>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Comandos del bot</h2>
+      <p class="section-help">Textos que el bot responde para los comandos <code>!help</code>, <code>!time</code>, <code>!about</code>, <code>!ping</code> y <code>!broadcast</code>. Algunos admiten variables entre llaves dobles.</p>
+      <div class="field">
+        <label for="cmd-help">Comando !help</label>
+        <textarea id="cmd-help" class="textarea short" data-path="commands.help"></textarea>
+        <div class="placeholders"><span class="placeholder">{{botName}}</span></div>
+      </div>
+      <div class="field">
+        <label for="cmd-time">Comando !time</label>
+        <textarea id="cmd-time" class="textarea short" data-path="commands.time"></textarea>
+        <div class="placeholders"><span class="placeholder">{{time}}</span><span class="placeholder">{{timezone}}</span></div>
+      </div>
+      <div class="field">
+        <label for="cmd-about">Comando !about</label>
+        <textarea id="cmd-about" class="textarea short" data-path="commands.about"></textarea>
+        <div class="placeholders"><span class="placeholder">{{botName}}</span></div>
+      </div>
+      <div class="field">
+        <label for="cmd-ping">Comando !ping</label>
+        <textarea id="cmd-ping" class="textarea short" data-path="commands.ping"></textarea>
+      </div>
+      <div class="field">
+        <label for="cmd-broadcastForbidden">Broadcast · sin permiso</label>
+        <textarea id="cmd-broadcastForbidden" class="textarea short" data-path="commands.broadcastForbidden"></textarea>
+      </div>
+      <div class="field">
+        <label for="cmd-broadcastNoContacts">Broadcast · sin contactos configurados</label>
+        <textarea id="cmd-broadcastNoContacts" class="textarea short" data-path="commands.broadcastNoContacts"></textarea>
+      </div>
+      <div class="field">
+        <label for="cmd-broadcastMessage">Broadcast · mensaje enviado a cada contacto</label>
+        <textarea id="cmd-broadcastMessage" class="textarea short" data-path="commands.broadcastMessage"></textarea>
+        <div class="placeholders"><span class="placeholder">{{botName}}</span></div>
+      </div>
+      <div class="field">
+        <label for="cmd-broadcastDone">Broadcast · confirmación al admin</label>
+        <textarea id="cmd-broadcastDone" class="textarea short" data-path="commands.broadcastDone"></textarea>
+        <div class="placeholders"><span class="placeholder">{{count}}</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Respuestas rápidas del operador</h2>
+      <p class="section-help">Plantillas que aparecen en el desplegable del compositor de respuesta, dentro del modal de una conversación. Podés agregar, modificar o eliminar las que quieras.</p>
+      <div id="quickRepliesList" class="list"></div>
+      <div class="add-row" style="margin-top: 14px;">
+        <button id="addQuickReply" class="button" type="button">+ Agregar respuesta rápida</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Reglas de conflicto</h2>
+      <p class="section-help">Cuando un mensaje entrante contiene alguna de estas frases, el bot deriva al humano con el motivo y el nivel correspondiente. Las frases se normalizan en minúsculas y sin acentos, así que escribilas como se ven después de normalizar (ej. <em>te voy a denunciar</em>).</p>
+      <div id="conflictBlocks"></div>
+    </section>
+
+    <div class="footer-bar">
+      <div id="footerStatus" class="footer-status">Cargando configuración…</div>
+      <div class="topbar-actions">
+        <button id="resetButton" class="button" type="button">Descartar cambios</button>
+        <button id="saveButton" class="button primary" type="button" disabled>Guardar cambios</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="loadingOverlay" class="loading-overlay" hidden>
+    <div class="section" style="margin: 0;">Cargando…</div>
+  </div>
+
+  <script>
+    const themeToggleEl = document.getElementById('themeToggle')
+    const storedTheme = localStorage.getItem('admin-theme') || 'light'
+    document.body.dataset.theme = storedTheme
+    themeToggleEl.textContent = storedTheme === 'light' ? 'Modo noche' : 'Modo día'
+
+    themeToggleEl.addEventListener('click', () => {
+      const nextTheme = document.body.dataset.theme === 'light' ? 'dark' : 'light'
+      document.body.dataset.theme = nextTheme
+      localStorage.setItem('admin-theme', nextTheme)
+      themeToggleEl.textContent = nextTheme === 'light' ? 'Modo noche' : 'Modo día'
+    })
+
+    const saveButtonEl = document.getElementById('saveButton')
+    const resetButtonEl = document.getElementById('resetButton')
+    const footerStatusEl = document.getElementById('footerStatus')
+    const quickRepliesListEl = document.getElementById('quickRepliesList')
+    const conflictBlocksEl = document.getElementById('conflictBlocks')
+    const addQuickReplyEl = document.getElementById('addQuickReply')
+
+    const CONFLICT_LEVELS = [
+      { key: 'leve', label: 'Leve' },
+      { key: 'agresion', label: 'Agresión' },
+      { key: 'amenaza', label: 'Amenaza' }
+    ]
+
+    let originalMessages = null
+    let originalConflictRules = null
+    let quickReplies = []
+    let conflictRules = { leve: { reason: '', phrases: [] }, agresion: { reason: '', phrases: [] }, amenaza: { reason: '', phrases: [] } }
+
+    function escapeHtml(value) {
+      return `${value ?? ''}`
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;')
+    }
+
+    function deepClone(value) {
+      return JSON.parse(JSON.stringify(value))
+    }
+
+    function getByPath(obj, path) {
+      return path.split('.').reduce((acc, key) => (acc == null ? acc : acc[key]), obj)
+    }
+
+    function setStatus(message, kind = '') {
+      footerStatusEl.textContent = message
+      footerStatusEl.className = `footer-status ${kind}`.trim()
+    }
+
+    function setDirty() {
+      saveButtonEl.disabled = false
+      setStatus('Hay cambios sin guardar.', '')
+    }
+
+    function fillTextFields(messages) {
+      document.querySelectorAll('textarea[data-path]').forEach((el) => {
+        const value = getByPath(messages, el.dataset.path)
+        el.value = typeof value === 'string' ? value : ''
+      })
+    }
+
+    function renderQuickReplies() {
+      if (quickReplies.length === 0) {
+        quickRepliesListEl.innerHTML = '<div class="hint">No hay respuestas rápidas. Agregá una con el botón de abajo.</div>'
+        return
+      }
+
+      quickRepliesListEl.innerHTML = quickReplies.map((reply, index) => `
+        <article class="list-item" data-index="${index}">
+          <div class="list-item-head">
+            <div class="list-item-title">Respuesta #${index + 1}</div>
+            <button class="button danger" data-action="remove-quick-reply" data-index="${index}" type="button">Eliminar</button>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>ID interno</label>
+              <input class="input" data-quick-field="id" data-index="${index}" value="${escapeHtml(reply.id)}" placeholder="ej. seguimiento-humano">
+            </div>
+            <div class="field">
+              <label>Etiqueta visible</label>
+              <input class="input" data-quick-field="label" data-index="${index}" value="${escapeHtml(reply.label)}" placeholder="ej. Seguimiento humano">
+            </div>
+          </div>
+          <div class="field">
+            <label>Texto que se envía</label>
+            <textarea class="textarea" data-quick-field="text" data-index="${index}">${escapeHtml(reply.text)}</textarea>
+          </div>
+        </article>
+      `).join('')
+    }
+
+    function renderConflictBlocks() {
+      conflictBlocksEl.innerHTML = CONFLICT_LEVELS.map(({ key, label }) => {
+        const rule = conflictRules[key] || { reason: '', phrases: [] }
+        const phrasesHtml = rule.phrases.map((phrase, idx) => `
+          <div class="phrase-row" data-phrase-row="${key}" data-index="${idx}">
+            <input class="input" data-conflict-phrase="${key}" data-index="${idx}" value="${escapeHtml(phrase)}">
+            <button class="icon-button" data-action="remove-phrase" data-level="${key}" data-index="${idx}" type="button" aria-label="Eliminar frase">🗑</button>
+          </div>
+        `).join('')
+
+        return `
+          <article class="conflict-block">
+            <div class="conflict-title">
+              <span class="level-badge ${key}">${label}</span>
+              <span>${phrasesHtml ? rule.phrases.length + ' frase(s)' : 'sin frases'}</span>
+            </div>
+            <div class="field">
+              <label>Motivo de derivación</label>
+              <p class="hint">Se muestra como <em>motivo de derivación</em> en la conversación cuando se dispara este nivel.</p>
+              <input class="input" data-conflict-reason="${key}" value="${escapeHtml(rule.reason)}">
+            </div>
+            <div class="field">
+              <label>Frases disparadoras</label>
+              <p class="hint">Cada coincidencia parcial activa el nivel. Una por fila.</p>
+              <div class="list" data-phrase-list="${key}">${phrasesHtml}</div>
+              <div class="add-row" style="margin-top: 10px;">
+                <input class="input" data-new-phrase="${key}" placeholder="Nueva frase (ej. ${escapeHtml(rule.phrases[0] || 'palabra clave')})">
+                <button class="button" data-action="add-phrase" data-level="${key}" type="button">+ Agregar</button>
+              </div>
+            </div>
+          </article>
+        `
+      }).join('')
+    }
+
+    function readQuickRepliesFromDOM() {
+      return Array.from(quickRepliesListEl.querySelectorAll('.list-item')).map((item) => {
+        const index = Number(item.dataset.index)
+        const id = item.querySelector('[data-quick-field="id"]').value.trim()
+        const label = item.querySelector('[data-quick-field="label"]').value.trim()
+        const text = item.querySelector('[data-quick-field="text"]').value
+        return { id: id || `respuesta-${index + 1}`, label, text }
+      })
+    }
+
+    function readConflictFromDOM() {
+      const result = {}
+      for (const { key } of CONFLICT_LEVELS) {
+        const reason = conflictBlocksEl.querySelector(`[data-conflict-reason="${key}"]`).value.trim()
+        const phraseInputs = conflictBlocksEl.querySelectorAll(`[data-conflict-phrase="${key}"]`)
+        const phrases = Array.from(phraseInputs).map((input) => input.value.trim()).filter(Boolean)
+        result[key] = { reason, phrases }
+      }
+      return result
+    }
+
+    function buildMessagesPayload() {
+      const payload = {
+        menu: '',
+        defaultReply: '',
+        intents: {},
+        humanHandoff: '',
+        topicFollowups: {},
+        commands: {},
+        quickReplies: readQuickRepliesFromDOM()
+      }
+
+      document.querySelectorAll('textarea[data-path]').forEach((el) => {
+        const segments = el.dataset.path.split('.')
+        let target = payload
+        for (let i = 0; i < segments.length - 1; i += 1) {
+          target[segments[i]] = target[segments[i]] || {}
+          target = target[segments[i]]
+        }
+        target[segments[segments.length - 1]] = el.value
+      })
+
+      return payload
+    }
+
+    async function loadAll() {
+      setStatus('Cargando configuración…')
+      const [messagesResponse, conflictResponse] = await Promise.all([
+        fetch('/api/bot-messages'),
+        fetch('/api/conflict-rules')
+      ])
+
+      if (!messagesResponse.ok || !conflictResponse.ok) {
+        setStatus('No se pudo cargar la configuración.', 'error')
+        return
+      }
+
+      const messages = await messagesResponse.json()
+      const rules = await conflictResponse.json()
+
+      originalMessages = deepClone(messages)
+      originalConflictRules = deepClone(rules)
+      quickReplies = deepClone(messages.quickReplies || [])
+      conflictRules = deepClone(rules)
+
+      fillTextFields(messages)
+      renderQuickReplies()
+      renderConflictBlocks()
+
+      saveButtonEl.disabled = true
+      setStatus('Sin cambios pendientes.', 'ok')
+    }
+
+    function resetForm() {
+      if (!originalMessages || !originalConflictRules) return
+      quickReplies = deepClone(originalMessages.quickReplies || [])
+      conflictRules = deepClone(originalConflictRules)
+      fillTextFields(originalMessages)
+      renderQuickReplies()
+      renderConflictBlocks()
+      saveButtonEl.disabled = true
+      setStatus('Cambios descartados.', 'ok')
+    }
+
+    async function saveAll() {
+      saveButtonEl.disabled = true
+      setStatus('Guardando…')
+
+      const messagesPayload = buildMessagesPayload()
+      const conflictPayload = readConflictFromDOM()
+
+      try {
+        const [messagesResponse, conflictResponse] = await Promise.all([
+          fetch('/api/bot-messages', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(messagesPayload)
+          }),
+          fetch('/api/conflict-rules', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(conflictPayload)
+          })
+        ])
+
+        if (!messagesResponse.ok || !conflictResponse.ok) {
+          const errorPayload = !messagesResponse.ok ? await messagesResponse.json().catch(() => ({})) : await conflictResponse.json().catch(() => ({}))
+          throw new Error(errorPayload.error || 'No se pudo guardar la configuración.')
+        }
+
+        const messages = await messagesResponse.json()
+        const rules = await conflictResponse.json()
+
+        originalMessages = deepClone(messages)
+        originalConflictRules = deepClone(rules)
+        quickReplies = deepClone(messages.quickReplies || [])
+        conflictRules = deepClone(rules)
+
+        fillTextFields(messages)
+        renderQuickReplies()
+        renderConflictBlocks()
+
+        setStatus('Cambios guardados.', 'ok')
+      } catch (error) {
+        setStatus(error.message || 'No se pudo guardar la configuración.', 'error')
+        saveButtonEl.disabled = false
+      }
+    }
+
+    document.addEventListener('input', (event) => {
+      if (event.target.matches('textarea[data-path], [data-quick-field], [data-conflict-reason], [data-conflict-phrase]')) {
+        setDirty()
+      }
+    })
+
+    quickRepliesListEl.addEventListener('click', (event) => {
+      const removeButton = event.target.closest('[data-action="remove-quick-reply"]')
+      if (!removeButton) return
+      const index = Number(removeButton.dataset.index)
+      quickReplies = readQuickRepliesFromDOM()
+      quickReplies.splice(index, 1)
+      renderQuickReplies()
+      setDirty()
+    })
+
+    addQuickReplyEl.addEventListener('click', () => {
+      quickReplies = readQuickRepliesFromDOM()
+      quickReplies.push({ id: '', label: 'Nueva respuesta', text: '' })
+      renderQuickReplies()
+      setDirty()
+    })
+
+    conflictBlocksEl.addEventListener('click', (event) => {
+      const addButton = event.target.closest('[data-action="add-phrase"]')
+      if (addButton) {
+        const level = addButton.dataset.level
+        const newPhraseInput = conflictBlocksEl.querySelector(`[data-new-phrase="${level}"]`)
+        const phrase = newPhraseInput.value.trim()
+        if (!phrase) return
+        conflictRules = readConflictFromDOM()
+        conflictRules[level].phrases.push(phrase)
+        renderConflictBlocks()
+        setDirty()
+        return
+      }
+
+      const removeButton = event.target.closest('[data-action="remove-phrase"]')
+      if (removeButton) {
+        const level = removeButton.dataset.level
+        const index = Number(removeButton.dataset.index)
+        conflictRules = readConflictFromDOM()
+        conflictRules[level].phrases.splice(index, 1)
+        renderConflictBlocks()
+        setDirty()
+      }
+    })
+
+    resetButtonEl.addEventListener('click', resetForm)
+    saveButtonEl.addEventListener('click', saveAll)
+
+    loadAll().catch((error) => {
+      console.error(error)
+      setStatus('Error al cargar la configuración.', 'error')
+    })
+  </script>
+</body>
+</html>

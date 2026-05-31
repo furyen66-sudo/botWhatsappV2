@@ -1,0 +1,50 @@
+{
+  "menu": "Gracias por comunicarte con el consultorio de nutricion 😊\n\nTe dejo las opciones para que podamos ayudarte mas rapido ✨\n1. Sacar un turno 📅\n2. Cambiar un turno 🔄\n3. Cancelar un turno ❌\n6. Ver direccion del consultorio 📍\n7. Atencion online 💻\n8. Indicaciones para la primera consulta 🩺\n\nPodes responder con el numero de la opcion que necesites.\n\nSi preferis, tambien podes dejar tu consulta por este medio y te respondemos a la brevedad 💬",
+  "defaultReply": "Si queres, escribime hola y te comparto las opciones disponibles.",
+  "intents": {
+    "appointment": "Perfecto 😊 Para ayudarte a coordinar un turno, por favor envianos:\n- nombre y apellido\n- dia que te queda mejor\n- horario aproximado o franja horaria\n- si es primera consulta o control\n\nEjemplo: Maria Perez, martes por la tarde, primera consulta.\n\nCon esos datos revisamos disponibilidad y te respondemos apenas posible.\nGracias por comunicarte 💚",
+    "reschedule": "No hay problema 😊 Para reprogramar tu turno, envianos:\n- nombre y apellido\n- fecha y horario del turno que tenes reservado\n- nuevo dia o franja horaria que te convenga\n\nApenas lo recibamos, vemos las alternativas disponibles y te avisamos.\nMuchas gracias 💚",
+    "cancel": "Esta bien 😊 Para cancelar el turno, por favor indicarnos:\n- nombre y apellido\n- fecha del turno\n- horario aproximado\n\nSi queres, en el mismo mensaje podes avisarnos si preferis reprogramarlo para otro dia.\nGracias por avisar con anticipacion 💚",
+    "location": "Te compartimos la direccion del consultorio 📍\nAv. Corrientes 1234, Piso 5, CABA.\n\nSi queres, tambien te podemos pasar la ubicacion por Google Maps.\n\nCualquier duda para llegar, escribinos. Te esperamos 😊",
+    "online": "Tambien contamos con atencion online 💻\n\nLa consulta se realiza por videollamada y despues te enviamos las indicaciones o el plan por WhatsApp o mail.\nSi queres coordinar una consulta online, responde con la opcion 1.\n\nEstamos para acompanarte de la forma que te resulte mas comoda 💚",
+    "firstConsultation": "Para la primera consulta, te recomendamos tener a mano 🩺\n- estudios recientes, si tenes\n- lista de medicacion habitual\n- el motivo de la consulta o tus objetivos\n- obra social o medio de pago\n\nEn la primera consulta se realiza una evaluacion inicial y se define el mejor enfoque para acompañarte.\n\nSi necesitas mas informacion antes de reservar, escribinos con tranquilidad 😊",
+    "presentialFollowup": "Perfecto 😊 Si preferis atencion presencial, tambien podemos ayudarte.\n\nPara coordinarla, envianos:\n- nombre y apellido\n- dia que te quede mejor\n- horario aproximado o franja horaria\n- si es primera consulta o control\n\nApenas lo recibamos, te respondemos por este medio 💚"
+  },
+  "humanHandoff": "Gracias por escribirnos 😊\n\nYa dejamos asentado que queres hablar con una persona del equipo.\nApenas un operador este disponible, te va a responder por este mismo medio.\n\nGracias por tu paciencia 💚",
+  "topicFollowups": {
+    "waitingHumanFirstOffer": "Si queres, mientras aguardas atencion humana, tambien podemos ayudarte desde el menu 😊\nSi preferis continuar con el bot, te comparto nuevamente las opciones disponibles.",
+    "waitingHumanRepeat": "Si necesitas algo mas, podes elegir una opcion del menu o escribirnos tu consulta y la revisamos 😊",
+    "appointment": "Perfecto 😊 Ya recibimos tu mensaje para coordinar un turno presencial.\nEn cuanto revisemos disponibilidad, te respondemos por este medio 💚",
+    "reschedule": "Gracias 😊 Ya recibimos tu pedido para cambiar el turno.\nEn breve revisamos las opciones disponibles y te respondemos por este medio 💚",
+    "cancel": "Gracias por avisarnos 😊\nYa recibimos tu mensaje para cancelar el turno y lo revisamos a la brevedad 💚",
+    "onlineToPresential": "Perfecto 😊 Si preferis atencion presencial, tambien podemos ayudarte.\n\nPara coordinarla, envianos:\n- nombre y apellido\n- dia que te quede mejor\n- horario aproximado o franja horaria\n- si es primera consulta o control\n\nApenas lo recibamos, revisamos disponibilidad y te respondemos 💚",
+    "onlineRepeat": "Perfecto 😊 Si queres coordinar una consulta online, envianos:\n- nombre y apellido\n- dia que te quede mejor\n- horario aproximado o franja horaria\n- si es primera consulta o control\n\nApenas lo recibamos, te respondemos por este medio 💚"
+  },
+  "commands": {
+    "help": "Soy {{botName}} 🤖.\n\nPodes escribirme hola, menu o turno para ver las opciones disponibles.",
+    "time": "Hora actual: {{time}} ({{timezone}})",
+    "about": "{{botName}} esta funcionando con Node.js + Baileys.",
+    "ping": "pong 🏓",
+    "broadcastForbidden": "No tienes permiso para usar !broadcast.",
+    "broadcastNoContacts": "No hay contactos configurados para broadcast en ALLOWED_BROADCAST.",
+    "broadcastMessage": "Mensaje de prueba enviado por {{botName}} 😊",
+    "broadcastDone": "Broadcast enviado a {{count}} contacto(s)."
+  },
+  "quickReplies": [
+    {
+      "id": "human-follow-up",
+      "label": "Seguimiento humano",
+      "text": "Gracias por tu mensaje 😊 Un integrante del equipo va a continuar la atencion por este medio apenas este disponible. Gracias por tu paciencia 💚"
+    },
+    {
+      "id": "request-details",
+      "label": "Pedir datos",
+      "text": "Gracias 😊 Para poder ayudarte mejor, por favor envianos nombre y apellido junto con el detalle de tu consulta. Apenas lo recibamos, te respondemos por este medio 💚"
+    },
+    {
+      "id": "confirm-received",
+      "label": "Confirmar recepcion",
+      "text": "Recibimos tu mensaje 😊 Ya lo dejamos asentado y te respondemos a la brevedad por este medio 💚"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Conversaciones WhatsApp</title>
+  <title>Panel de administración</title>
   <style>
     @font-face {
       font-family: "Whyte";
@@ -303,6 +303,12 @@
       background: transparent;
       border-color: var(--line);
       color: var(--text);
+    }
+
+    .button.danger {
+      background: var(--pink);
+      border-color: var(--pink);
+      color: #111111;
     }
 
     .button:hover,
@@ -627,7 +633,10 @@
         </div>
         <div class="topbar-actions">
           <a class="button-link secondary" href="/api/conversations-export.csv">Exportar CSV</a>
+          <a class="button-link secondary" href="/config">Configuración</a>
+          <a class="button-link secondary" href="/documentation">Documentación</a>
           <button id="themeToggle" class="button secondary" type="button">Modo noche</button>
+          <button id="logoutButton" class="button secondary" type="button">Cerrar sesión</button>
         </div>
       </div>
     </header>
@@ -677,6 +686,7 @@
         </div>
         <div class="modal-tools">
           <button id="printConversation" class="button secondary" type="button">Exportar PDF</button>
+          <button id="deleteConversation" class="button danger" type="button">Eliminar conversación</button>
           <button id="closeModal" class="button secondary" type="button">Cerrar</button>
         </div>
       </div>
@@ -745,6 +755,7 @@
     const refreshEl = document.getElementById('refresh')
     const clearFiltersEl = document.getElementById('clearFilters')
     const themeToggleEl = document.getElementById('themeToggle')
+    const logoutButtonEl = document.getElementById('logoutButton')
     const modalEl = document.getElementById('modal')
     const closeModalEl = document.getElementById('closeModal')
     const detailsTabEl = document.getElementById('detailsTab')
@@ -752,6 +763,7 @@
     const detailsPanelEl = document.getElementById('detailsPanel')
     const replyPanelEl = document.getElementById('replyPanel')
     const printConversationEl = document.getElementById('printConversation')
+    const deleteConversationEl = document.getElementById('deleteConversation')
     const modalTitleEl = document.getElementById('modalTitle')
     const modalMetaEl = document.getElementById('modalMeta')
     const modalStatusEl = document.getElementById('modalStatus')
@@ -951,6 +963,7 @@
               </select>
               <button class="button secondary" type="button" data-read-jid="${encodeURIComponent(conversation.jid)}">Marcar leída</button>
               <button class="button" type="button" data-jid="${encodeURIComponent(conversation.jid)}">Ver detalles</button>
+              <button class="button danger" type="button" data-delete-jid="${encodeURIComponent(conversation.jid)}" data-delete-name="${escapeHtml(conversation.name || conversation.jid)}">Eliminar</button>
             </div>
           </div>
         </article>
@@ -1033,6 +1046,12 @@
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
+      })
+    }
+
+    async function deleteConversation(jid) {
+      return apiJson(`/api/conversations/${encodeURIComponent(jid)}`, {
+        method: 'DELETE'
       })
     }
 
@@ -1145,6 +1164,23 @@
       themeToggleEl.textContent = nextTheme === 'light' ? 'Modo noche' : 'Modo día'
     })
 
+    logoutButtonEl.addEventListener('click', async () => {
+      const confirmed = window.confirm('¿Querés cerrar la sesión de WhatsApp? Vas a tener que escanear el QR otra vez para volver a conectarte.')
+      if (!confirmed) return
+
+      logoutButtonEl.disabled = true
+      logoutButtonEl.textContent = 'Cerrando sesión...'
+
+      try {
+        await apiJson('/api/logout', { method: 'POST' })
+        window.location.replace('/')
+      } catch (error) {
+        alert(error.message || 'No se pudo cerrar la sesión')
+        logoutButtonEl.disabled = false
+        logoutButtonEl.textContent = 'Cerrar sesión'
+      }
+    })
+
     window.addEventListener('pointerdown', ensureAudioContext, { once: true })
     window.addEventListener('keydown', ensureAudioContext, { once: true })
 
@@ -1160,6 +1196,18 @@
     })
 
     listEl.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('[data-delete-jid]')
+      if (deleteButton) {
+        const jid = decodeURIComponent(deleteButton.dataset.deleteJid)
+        const name = deleteButton.dataset.deleteName || jid
+        const confirmed = window.confirm(`¿Eliminar la conversación con "${name}"?\n\nEsta acción no se puede deshacer.`)
+        if (!confirmed) return
+        deleteConversation(jid)
+          .then(loadConversations)
+          .catch((error) => alert(error.message))
+        return
+      }
+
       const detailsButton = event.target.closest('[data-jid]')
       if (detailsButton) {
         openConversation(decodeURIComponent(detailsButton.dataset.jid)).catch((error) => alert(error.message))
@@ -1217,6 +1265,22 @@
     })
 
     printConversationEl.addEventListener('click', () => window.print())
+
+    deleteConversationEl.addEventListener('click', async () => {
+      if (!activeConversationJid) return
+      const displayName = modalTitleEl.textContent || activeConversationJid
+      const confirmed = window.confirm(`¿Eliminar la conversación con "${displayName}"?\n\nEsta acción no se puede deshacer.`)
+      if (!confirmed) return
+
+      try {
+        await deleteConversation(activeConversationJid)
+        closeModal()
+        await loadConversations()
+      } catch (error) {
+        alert(error.message || 'No se pudo eliminar la conversación')
+      }
+    })
+
     closeModalEl.addEventListener('click', closeModal)
     modalEl.addEventListener('click', (event) => {
       if (event.target === modalEl) closeModal()
