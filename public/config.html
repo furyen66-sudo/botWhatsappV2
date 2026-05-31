@@ -126,6 +126,13 @@
       color: #111;
     }
 
+    .theme-toggle {
+      width: 44px;
+      min-width: 44px;
+      padding: 0;
+      font-size: 18px;
+    }
+
     .button:hover,
     .button-link:hover {
       transform: translateY(-1px);
@@ -408,12 +415,11 @@
     <div class="topbar-inner">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"></span>
-        <span>Centro de Atención · Configuración</span>
+        <span>Centro de Atención</span>
       </div>
       <div class="topbar-actions">
-        <a class="button-link" href="/admin">Volver al panel</a>
-        <a class="button-link" href="/documentation">Documentación</a>
-        <button id="themeToggle" class="button" type="button">Modo noche</button>
+        <a class="button-link" href="/admin" aria-label="Volver al panel" title="Volver al panel">← Volver al panel</a>
+        <button id="themeToggle" class="button theme-toggle" type="button" aria-label="Cambiar tema" title="Cambiar tema">🌙</button>
       </div>
     </div>
   </header>
@@ -646,13 +652,20 @@
     const themeToggleEl = document.getElementById('themeToggle')
     const storedTheme = localStorage.getItem('admin-theme') || 'light'
     document.body.dataset.theme = storedTheme
-    themeToggleEl.textContent = storedTheme === 'light' ? 'Modo noche' : 'Modo día'
+    updateThemeToggleIcon(storedTheme)
+
+    function updateThemeToggleIcon(theme) {
+      const isLight = theme === 'light'
+      themeToggleEl.textContent = isLight ? '🌙' : '☀'
+      themeToggleEl.title = isLight ? 'Activar modo noche' : 'Activar modo día'
+      themeToggleEl.setAttribute('aria-label', themeToggleEl.title)
+    }
 
     themeToggleEl.addEventListener('click', () => {
       const nextTheme = document.body.dataset.theme === 'light' ? 'dark' : 'light'
       document.body.dataset.theme = nextTheme
       localStorage.setItem('admin-theme', nextTheme)
-      themeToggleEl.textContent = nextTheme === 'light' ? 'Modo noche' : 'Modo día'
+      updateThemeToggleIcon(nextTheme)
     })
 
     const saveButtonEl = document.getElementById('saveButton')

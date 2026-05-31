@@ -145,6 +145,30 @@
       align-items: center;
     }
 
+    .topbar-actions .button,
+    .topbar-actions .button-link {
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 14px;
+      background: var(--panel);
+      border-color: var(--line);
+      color: var(--text);
+    }
+
+    .topbar-actions .button.primary,
+    .topbar-actions .button-link.primary {
+      background: #111111;
+      border-color: #111111;
+      color: #ffffff;
+    }
+
+    body[data-theme="dark"] .topbar-actions .button.primary,
+    body[data-theme="dark"] .topbar-actions .button-link.primary {
+      background: #f5efe6;
+      border-color: #f5efe6;
+      color: #111111;
+    }
+
     .hero {
       padding: 52px 0 18px;
     }
@@ -311,6 +335,13 @@
       color: #111111;
     }
 
+    .theme-toggle {
+      width: 44px;
+      min-width: 44px;
+      padding: 0;
+      font-size: 18px;
+    }
+
     .button:hover,
     .button-link:hover {
       transform: translateY(-1px);
@@ -422,7 +453,6 @@
 
     .tags,
     .detail-grid,
-    .notes-wrap,
     .reply-wrap {
       display: grid;
       gap: 10px;
@@ -443,6 +473,19 @@
     .summary-value {
       margin-top: 6px;
       font-weight: 800;
+    }
+
+    .management-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .management-card {
+      padding: 16px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      display: grid;
+      gap: 12px;
     }
 
     .modal[hidden] {
@@ -639,7 +682,6 @@
       .modal-tools,
       .toolbar,
       .reply-wrap,
-      .notes-wrap,
       .card-footer,
       .button,
       .button-link {
@@ -698,10 +740,12 @@
           <span>Centro de Atención</span>
         </div>
         <div class="topbar-actions">
+          <a class="button-link primary" href="/admin">Conversaciones</a>
           <a class="button-link secondary" href="/api/conversations-export.csv">Exportar CSV</a>
+          <a class="button-link secondary" href="/calendar">Calendario</a>
           <a class="button-link secondary" href="/config">Configuración</a>
           <a class="button-link secondary" href="/documentation">Documentación</a>
-          <button id="themeToggle" class="button secondary" type="button">Modo noche</button>
+          <button id="themeToggle" class="button secondary theme-toggle" type="button" aria-label="Cambiar tema" title="Cambiar tema">🌙</button>
           <button id="logoutButton" class="button secondary" type="button">Cerrar sesión</button>
         </div>
       </div>
@@ -766,17 +810,29 @@
       <section id="detailsPanel" class="tab-panel">
       <div class="summary-grid">
         <div class="summary-card"><div class="summary-label">Estado</div><div class="summary-value"><span id="modalStatusBadge"></span></div></div>
+        <div class="summary-card"><div class="summary-label">Comprobante</div><div id="modalReceiptBadge" class="summary-value"></div></div>
+        <div class="summary-card"><div class="summary-label">Horario elegido</div><div id="modalSelectedSlot" class="summary-value"></div></div>
+        <div class="summary-card"><div class="summary-label">Google Calendar</div><div id="modalCalendarEvent" class="summary-value"></div></div>
         <div class="summary-card"><div class="summary-label">No leídos</div><div id="modalUnread" class="summary-value">0</div></div>
         <div class="summary-card"><div class="summary-label">Etiquetas</div><div id="modalTagsPreview" class="summary-value"></div></div>
         <div class="summary-card"><div class="summary-label">Última respuesta del bot</div><div id="modalLastBotReply" class="summary-value"></div></div>
         <div class="summary-card"><div class="summary-label">Tiempo sin responder</div><div id="modalWaitingTime" class="summary-value"></div></div>
         <div class="summary-card"><div class="summary-label">Motivo de derivación</div><div id="modalEscalationReason" class="summary-value"></div></div>
         <div class="summary-card"><div class="summary-label">Nivel de conflicto</div><div id="modalConflictLevel" class="summary-value"></div></div>
-        <div class="summary-card"><div class="summary-label">Comprobante</div><div id="modalReceiptBadge" class="summary-value"></div></div>
       </div>
 
-      <h3 class="section-title">Gestión</h3>
-      <div class="notes-wrap">
+      <h3 class="section-title">Agenda del turno</h3>
+      <div class="management-grid">
+        <div class="management-card">
+          <div class="card-actions" style="margin-bottom: 8px;">
+            <button id="loadCalendar" class="button secondary" type="button">Ver disponibilidad próxima</button>
+            <span id="calendarMeta" class="meta"></span>
+          </div>
+          <div id="calendarAvailability" class="calendar-availability"></div>
+        </div>
+
+        <div class="management-card">
+          <h3 class="section-title" style="margin: 0;">Gestión</h3>
         <div class="card-actions">
           <select id="modalStatus" class="select">
             <option value="pendiente">Pendiente</option>
@@ -793,15 +849,8 @@
           <button id="saveMetadata" class="button" type="button">Guardar cambios</button>
         </div>
         <input id="modalTags" class="input" type="text" placeholder="Etiquetas separadas por coma. Ej: turno, online, primera vez">
-        <textarea id="modalNotes" class="textarea" placeholder="Notas internas del administrador"></textarea>
+        </div>
       </div>
-
-      <h3 class="section-title">Disponibilidad de agenda</h3>
-      <div class="card-actions" style="margin-bottom: 8px;">
-        <button id="loadCalendar" class="button secondary" type="button">Ver disponibilidad próxima</button>
-        <span id="calendarMeta" class="meta"></span>
-      </div>
-      <div id="calendarAvailability" class="calendar-availability"></div>
 
       <h3 class="section-title">Historial completo</h3>
       <div id="messages" class="messages"></div>
@@ -856,12 +905,13 @@
     const modalEscalationReasonEl = document.getElementById('modalEscalationReason')
     const modalConflictLevelEl = document.getElementById('modalConflictLevel')
     const modalReceiptBadgeEl = document.getElementById('modalReceiptBadge')
+    const modalSelectedSlotEl = document.getElementById('modalSelectedSlot')
+    const modalCalendarEventEl = document.getElementById('modalCalendarEvent')
     const modalReceiptStatusEl = document.getElementById('modalReceiptStatus')
     const loadCalendarEl = document.getElementById('loadCalendar')
     const calendarMetaEl = document.getElementById('calendarMeta')
     const calendarAvailabilityEl = document.getElementById('calendarAvailability')
     const modalTagsEl = document.getElementById('modalTags')
-    const modalNotesEl = document.getElementById('modalNotes')
     const confirmTurnButtonEl = document.getElementById('confirmTurnButton')
     const markReadEl = document.getElementById('markRead')
     const saveMetadataEl = document.getElementById('saveMetadata')
@@ -880,8 +930,15 @@
 
     const storedTheme = localStorage.getItem('admin-theme') || 'light'
     document.body.dataset.theme = storedTheme
-    themeToggleEl.textContent = storedTheme === 'light' ? 'Modo noche' : 'Modo día'
+    updateThemeToggleIcon(storedTheme)
     const defaultTitle = document.title
+
+    function updateThemeToggleIcon(theme) {
+      const isLight = theme === 'light'
+      themeToggleEl.textContent = isLight ? '🌙' : '☀'
+      themeToggleEl.title = isLight ? 'Activar modo noche' : 'Activar modo día'
+      themeToggleEl.setAttribute('aria-label', themeToggleEl.title)
+    }
 
     function escapeHtml(value) {
       return `${value ?? ''}`
@@ -911,6 +968,16 @@
       if (diffHours < 24) return `Hace ${diffHours} h`
       const diffDays = Math.floor(diffHours / 24)
       return `Hace ${diffDays} día(s)`
+    }
+
+    function formatSelectedSlot(start, end) {
+      if (!start || !end) return 'Sin horario elegido'
+      const startDate = new Date(start)
+      const endDate = new Date(end)
+      const dayLabel = startDate.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: '2-digit' })
+      const startLabel = startDate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+      const endLabel = endDate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+      return `${dayLabel}, ${startLabel} a ${endLabel}`
     }
 
     function isWaitingForReply(conversation) {
@@ -1227,11 +1294,12 @@
       modalEscalationReasonEl.textContent = conversation.escalationReason || 'Sin derivación activa'
       modalConflictLevelEl.innerHTML = getConflictBadge(conversation.conflictLevel)
       modalReceiptBadgeEl.innerHTML = getReceiptBadge(conversation.paymentReceiptStatus) || '<span class="meta">Sin comprobante</span>'
+      modalSelectedSlotEl.textContent = formatSelectedSlot(conversation.selectedCalendarSlotStart, conversation.selectedCalendarSlotEnd)
+      modalCalendarEventEl.textContent = conversation.calendarEventId ? 'Evento agendado' : 'Sin evento agendado'
       modalReceiptStatusEl.value = conversation.paymentReceiptStatus || ''
       calendarAvailabilityEl.innerHTML = ''
       calendarMetaEl.textContent = ''
       modalTagsEl.value = (conversation.tags || []).join(', ')
-      modalNotesEl.value = conversation.notes || ''
       quickReplySelectEl.value = ''
       replyTextEl.value = ''
       replyFileEl.value = ''
@@ -1270,7 +1338,7 @@
       const nextTheme = document.body.dataset.theme === 'light' ? 'dark' : 'light'
       document.body.dataset.theme = nextTheme
       localStorage.setItem('admin-theme', nextTheme)
-      themeToggleEl.textContent = nextTheme === 'light' ? 'Modo noche' : 'Modo día'
+      updateThemeToggleIcon(nextTheme)
     })
 
     logoutButtonEl.addEventListener('click', async () => {
@@ -1390,7 +1458,7 @@
         const payload = await response.json()
         renderCalendarAvailability(payload)
         if (payload.configured && payload.available) {
-          calendarMetaEl.textContent = `Slots de ${payload.slotMinutes} min entre ${payload.workStart} y ${payload.workEnd} (${payload.timezone})`
+          calendarMetaEl.textContent = `Slots de ${payload.slotMinutes} min entre ${payload.workStart} y ${payload.workEnd}`
         }
       } catch (error) {
         calendarAvailabilityEl.innerHTML = `<div class="calendar-config">Error consultando disponibilidad: ${escapeHtml(error.message || 'desconocido')}</div>`
@@ -1422,7 +1490,6 @@
       if (!activeConversationJid) return
       await updateConversation(activeConversationJid, {
         status: modalStatusEl.value,
-        notes: modalNotesEl.value,
         tags: parseTags(modalTagsEl.value),
         paymentReceiptStatus: modalReceiptStatusEl.value
       })

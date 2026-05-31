@@ -46,6 +46,7 @@ const CONFLICT_RULES_FILE = new URL('../data/conflict-rules.json', import.meta.u
 const MESSAGES_FILE = new URL('../data/messages.json', import.meta.url)
 const UPLOADS_DIR = new URL('../data/uploads/', import.meta.url)
 const ADMIN_PAGE_FILE = new URL('../public/admin.html', import.meta.url)
+const CALENDAR_PAGE_FILE = new URL('../public/calendar.html', import.meta.url)
 const LINK_PAGE_FILE = new URL('../public/link.html', import.meta.url)
 const DOCUMENTATION_PAGE_FILE = new URL('../public/documentation.html', import.meta.url)
 const CONFIG_PAGE_FILE = new URL('../public/config.html', import.meta.url)
@@ -1907,6 +1908,54 @@ async function getCalendarAvailability(daysAhead = GOOGLE_CALENDAR_DAYS_AHEAD) {
   }
 }
 
+async function getCalendarOverview(daysAhead = GOOGLE_CALENDAR_DAYS_AHEAD) {
+  const availability = await getCalendarAvailability(daysAhead)
+  if (!availability.configured || !availability.available) {
+    return availability
+  }
+
+  const client = await getCalendarClient()
+  if (!client) {
+    return { configured: true, available: false, slots: [], events: [], error: 'No se pudo autenticar con Google Calendar.' }
+  }
+
+  const days = Math.min(Math.max(1, Number(daysAhead) || 1), 30)
+  const now = new Date()
+  const timeMax = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+
+  try {
+    const response = await client.events.list({
+      calendarId: GOOGLE_CALENDAR_ID,
+      timeMin: now.toISOString(),
+      timeMax: timeMax.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults: 250
+    })
+
+    const events = (response.data.items || []).map((event) => ({
+      id: event.id || '',
+      summary: event.summary || 'Turno ocupado',
+      start: event.start?.dateTime || event.start?.date || '',
+      end: event.end?.dateTime || event.end?.date || ''
+    })).filter((event) => event.start && event.end)
+
+    return {
+      ...availability,
+      events
+    }
+  } catch (error) {
+    console.error('Error listando eventos de Google Calendar:', error.message)
+    return {
+      configured: true,
+      available: false,
+      slots: [],
+      events: [],
+      error: error?.message || 'Error listando eventos de Google Calendar.'
+    }
+  }
+}
+
 async function clearAuthDirectory() {
   await rm(AUTH_DIR, { recursive: true, force: true })
   await mkdir(AUTH_DIR, { recursive: true })
@@ -2027,6 +2076,13 @@ async function handleAdminRequest(req, res) {
     return
   }
 
+  if (req.method === 'GET' && requestUrl.pathname === '/calendar') {
+    const html = await readFile(CALENDAR_PAGE_FILE, 'utf8')
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end(html)
+    return
+  }
+
   if (req.method === 'GET' && requestUrl.pathname === '/documentation') {
     const html = await readFile(DOCUMENTATION_PAGE_FILE, 'utf8')
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
@@ -2075,6 +2131,13 @@ async function handleAdminRequest(req, res) {
   if (req.method === 'GET' && requestUrl.pathname === '/api/calendar/availability') {
     const days = Number(requestUrl.searchParams.get('days')) || GOOGLE_CALENDAR_DAYS_AHEAD
     const result = await getCalendarAvailability(days)
+    sendJson(res, 200, result)
+    return
+  }
+
+  if (req.method === 'GET' && requestUrl.pathname === '/api/calendar/overview') {
+    const days = Number(requestUrl.searchParams.get('days')) || GOOGLE_CALENDAR_DAYS_AHEAD
+    const result = await getCalendarOverview(days)
     sendJson(res, 200, result)
     return
   }

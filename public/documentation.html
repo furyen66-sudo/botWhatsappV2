@@ -129,6 +129,13 @@
       opacity: 0.93;
     }
 
+    .theme-toggle {
+      width: 44px;
+      min-width: 44px;
+      padding: 0;
+      font-size: 18px;
+    }
+
     .hero {
       padding: 16px 0 8px;
       max-width: 720px;
@@ -317,12 +324,11 @@
     <div class="topbar-inner">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"></span>
-        <span>Centro de Atención · Documentación</span>
+        <span>Centro de Atención</span>
       </div>
       <div class="topbar-actions">
-        <a class="button-link primary" href="/admin">Volver al panel</a>
-        <a class="button-link" href="/config">Configuración</a>
-        <button id="themeToggle" class="button" type="button">Modo noche</button>
+        <a class="button-link" href="/admin" aria-label="Volver al panel" title="Volver al panel">← Volver al panel</a>
+        <button id="themeToggle" class="button theme-toggle" type="button" aria-label="Cambiar tema" title="Cambiar tema">🌙</button>
       </div>
     </div>
   </header>
@@ -361,7 +367,7 @@
       <a href="#sesion">23. Cerrar sesión</a>
       <a href="#configuracion">23b. Panel de configuración</a>
       <a href="#comprobante">23c. Flujo de comprobante</a>
-      <a href="#calendar">23d. Google Calendar</a>
+      <a href="#calendar">23d. Google Calendar y calendario global</a>
       <a href="#actualizacion">24. Actualización automática</a>
       <a href="#sonido">25. Notificación sonora</a>
       <a href="#impresion">26. Exportar PDF</a>
@@ -378,7 +384,7 @@
         <li><strong>Entender en qué estado</strong> está cada conversación (pendiente, respondida, urgente).</li>
         <li><strong>Detectar conflictos</strong> y mensajes que requieren atención humana inmediata.</li>
         <li><strong>Tomar el control manual</strong> de una conversación: responder con texto, mandar archivos, marcar como leída.</li>
-        <li><strong>Clasificar conversaciones</strong> con etiquetas y notas internas.</li>
+        <li><strong>Clasificar conversaciones</strong> con etiquetas, estados y estado de comprobante.</li>
         <li><strong>Exportar la información</strong> en CSV para auditoría o análisis externo.</li>
         <li><strong>Administrar la vinculación</strong> de WhatsApp con la cuenta.</li>
       </ul>
@@ -829,7 +835,7 @@
             <li><code>GOOGLE_CALENDAR_CLIENT_EMAIL</code>: campo <code>client_email</code> del JSON.</li>
             <li><code>GOOGLE_CALENDAR_PRIVATE_KEY</code>: campo <code>private_key</code> del JSON (con los <code>\n</code> escapados).</li>
             <li><code>GOOGLE_CALENDAR_ID</code>: ID del calendario (usualmente el email de Celia).</li>
-            <li><code>GOOGLE_CALENDAR_TIMEZONE</code>: zona horaria (ej. <code>America/Argentina/Buenos_Aires</code>).</li>
+            <li><code>GOOGLE_CALENDAR_TIMEZONE</code>: zona horaria del calendario (ej. una zona de Argentina).</li>
             <li><code>GOOGLE_CALENDAR_WORK_START</code> / <code>GOOGLE_CALENDAR_WORK_END</code>: <code>09:00</code> / <code>18:00</code>.</li>
             <li><code>GOOGLE_CALENDAR_SLOT_MINUTES</code>: <code>60</code>.</li>
             <li><code>GOOGLE_CALENDAR_DAYS_AHEAD</code>: <code>7</code>.</li>
@@ -913,14 +919,22 @@
     const themeToggleEl = document.getElementById('themeToggle')
     const storedTheme = localStorage.getItem('admin-theme') || 'light'
     document.body.dataset.theme = storedTheme
-    themeToggleEl.textContent = storedTheme === 'light' ? 'Modo noche' : 'Modo día'
+    updateThemeToggleIcon(storedTheme)
+
+    function updateThemeToggleIcon(theme) {
+      const isLight = theme === 'light'
+      themeToggleEl.textContent = isLight ? '🌙' : '☀'
+      themeToggleEl.title = isLight ? 'Activar modo noche' : 'Activar modo día'
+      themeToggleEl.setAttribute('aria-label', themeToggleEl.title)
+    }
 
     themeToggleEl.addEventListener('click', () => {
       const nextTheme = document.body.dataset.theme === 'light' ? 'dark' : 'light'
       document.body.dataset.theme = nextTheme
       localStorage.setItem('admin-theme', nextTheme)
-      themeToggleEl.textContent = nextTheme === 'light' ? 'Modo noche' : 'Modo día'
+      updateThemeToggleIcon(nextTheme)
     })
+
   </script>
 </body>
 </html>
