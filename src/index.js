@@ -5,6 +5,7 @@ import { basename, extname } from 'node:path'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import {
   DisconnectReason,
+  downloadMediaMessage,
   fetchLatestBaileysVersion,
   makeWASocket,
   useMultiFileAuthState
@@ -31,6 +32,14 @@ const BROADCAST_CONTACTS = (process.env.ALLOWED_BROADCAST || '')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean)
+const GOOGLE_CALENDAR_CLIENT_EMAIL = process.env.GOOGLE_CALENDAR_CLIENT_EMAIL || ''
+const GOOGLE_CALENDAR_PRIVATE_KEY = (process.env.GOOGLE_CALENDAR_PRIVATE_KEY || '').replace(/\\n/g, '\n')
+const GOOGLE_CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || ''
+const GOOGLE_CALENDAR_TIMEZONE = process.env.GOOGLE_CALENDAR_TIMEZONE || process.env.TIMEZONE || 'UTC'
+const GOOGLE_CALENDAR_WORK_START = process.env.GOOGLE_CALENDAR_WORK_START || '09:00'
+const GOOGLE_CALENDAR_WORK_END = process.env.GOOGLE_CALENDAR_WORK_END || '18:00'
+const GOOGLE_CALENDAR_SLOT_MINUTES = Number(process.env.GOOGLE_CALENDAR_SLOT_MINUTES || 60)
+const GOOGLE_CALENDAR_DAYS_AHEAD = Number(process.env.GOOGLE_CALENDAR_DAYS_AHEAD || 7)
 const CONVERSATIONS_DIR = new URL('../data/', import.meta.url)
 const CONVERSATIONS_FILE = new URL('../data/conversations.json', import.meta.url)
 const CONFLICT_RULES_FILE = new URL('../data/conflict-rules.json', import.meta.url)
@@ -41,6 +50,22 @@ const LINK_PAGE_FILE = new URL('../public/link.html', import.meta.url)
 const DOCUMENTATION_PAGE_FILE = new URL('../public/documentation.html', import.meta.url)
 const CONFIG_PAGE_FILE = new URL('../public/config.html', import.meta.url)
 const CONVERSATION_STATUSES = new Set(['pendiente', 'respondida', 'urgente'])
+const PAYMENT_RECEIPT_STATUSES = new Set(['', 'requested', 'received', 'verified'])
+const SCHEDULING_SELECTION_TEXTS = new Set(['1', '2', '3'])
+const COORDINATING_TOPICS = new Set([
+  'turnos',
+  'consulta-nutricional',
+  'nutricion-deportiva',
+  'antropometria',
+  'antropometria-vs-inbody',
+  'antropometria-plan',
+  'neurologia',
+  'valores',
+  'ubicacion',
+  'diabetes',
+  'descenso-peso',
+  'reserva-turno'
+])
 const DEFAULT_TAGS = []
 const CONFLICT_LEVELS = new Set(['leve', 'agresion', 'amenaza'])
 const DEFAULT_CONFLICT_RULES = {
@@ -107,7 +132,7 @@ const INTENT_DISPATCH = {
   'neurologia': { messageKey: 'neurologia', topic: 'neurologia' },
   'valores': { messageKey: 'valores', topic: 'valores' },
   'ubicacion': { messageKey: 'ubicacion', topic: 'ubicacion' },
-  'reserva-turno': { messageKey: 'reservaTurno', topic: 'reserva-turno' },
+  'reserva-turno': { messageKey: 'reservaTurno', topic: 'reserva-turno', requestsReceipt: true },
   'politica-inasistencia': { messageKey: 'politicaInasistencia', topic: 'politica-inasistencia' },
   'diabetes': { messageKey: 'diabetes', topic: 'diabetes' },
   'descenso-peso': { messageKey: 'descensoPeso', topic: 'descenso-peso' }
@@ -342,7 +367,15 @@ const DEFAULT_BOT_MESSAGES = {
       'Te comparto nuevamente las opciones disponibles.'
     ].join('\n'),
     waitingHumanRepeat: 'Si necesitás algo más, podés elegir una opción del menú o dejarnos tu consulta y la revisamos 😊',
-    generic: 'Recibimos tu mensaje 😊 Lo dejamos asentado y te respondemos a la brevedad por este medio 💚'
+    generic: 'Recibimos tu mensaje 😊 Lo dejamos asentado y te respondemos a la brevedad por este medio 💚',
+    coordinandoTurno: [
+      '¡Genial! 😊 Verifico la disponibilidad de agenda y te confirmo el horario en un ratito.',
+      '',
+      'Si querés ir agilizando la reserva, podés enviarnos el comprobante de la seña ($15.000 por transferencia al alias *cefsoler* – Celia Fatima Soler).',
+      '',
+      'Una vez verificado el pago, el turno queda confirmado 💚'
+    ].join('\n'),
+    comprobanteRecibido: '¡Recibimos el comprobante! 🙌 Verificamos el pago y te confirmamos el turno en breve.'
   },
   commands: {
     help: [
@@ -525,6 +558,27 @@ function normalizeConversationStatus(status) {
   return CONVERSATION_STATUSES.has(status) ? status : 'pendiente'
 }
 
+function normalizePaymentReceiptStatus(status) {
+  return PAYMENT_RECEIPT_STATUSES.has(status) ? status : ''
+}
+
+function normalizeCalendarSlot(slot, fallbackIndex = 0) {
+  if (!slot || typeof slot !== 'object') return null
+  const start = typeof slot.start === 'string' ? slot.start : ''
+  const end = typeof slot.end === 'string' ? slot.end : ''
+  if (!start || !end) return null
+  const id = typeof slot.id === 'string' && slot.id.trim() ? slot.id.trim() : String(fallbackIndex + 1)
+  return { id, start, end }
+}
+
+function normalizeCalendarSlots(slots) {
+  if (!Array.isArray(slots)) return []
+  return slots
+    .map((slot, index) => normalizeCalendarSlot(slot, index))
+    .filter(Boolean)
+    .slice(0, 6)
+}
+
 function createConversationRecord(jid, now = getIsoTimestamp()) {
   return {
     jid,
@@ -544,6 +598,11 @@ function createConversationRecord(jid, now = getIsoTimestamp()) {
     humanFallbackOffered: false,
     escalationReason: '',
     conflictLevel: '',
+    paymentReceiptStatus: '',
+    offeredCalendarSlots: [],
+    selectedCalendarSlotStart: '',
+    selectedCalendarSlotEnd: '',
+    calendarEventId: '',
     shouldUseNameGreeting: true,
     messages: []
   }
@@ -626,7 +685,7 @@ function isOperatorRequest(text) {
   ])
 }
 
-function detectIntent(text, currentTopic = '') {
+function detectIntent(text) {
   if (isOperatorRequest(text)) return 'hablar-con-celia'
 
   if (text === '1' || includesAny(text, ['sacar turno', 'quiero un turno', 'quiero turno', 'reservar turno', 'agendar turno', 'pedir turno', 'turno por favor'])) return 'turnos'
@@ -681,6 +740,11 @@ async function ensureConversationStore() {
         humanFallbackOffered: Boolean(item.humanFallbackOffered),
         escalationReason: item.escalationReason || '',
         conflictLevel: normalizeConflictLevel(item.conflictLevel),
+        paymentReceiptStatus: normalizePaymentReceiptStatus(item.paymentReceiptStatus),
+        offeredCalendarSlots: normalizeCalendarSlots(item.offeredCalendarSlots),
+        selectedCalendarSlotStart: typeof item.selectedCalendarSlotStart === 'string' ? item.selectedCalendarSlotStart : '',
+        selectedCalendarSlotEnd: typeof item.selectedCalendarSlotEnd === 'string' ? item.selectedCalendarSlotEnd : '',
+        calendarEventId: typeof item.calendarEventId === 'string' ? item.calendarEventId : '',
         shouldUseNameGreeting: item.shouldUseNameGreeting !== false,
         messageCount: Array.isArray(item.messages) ? item.messages.length : 0,
         messages: Array.isArray(item.messages) ? item.messages : []
@@ -784,7 +848,9 @@ function normalizeBotMessages(raw) {
     topicFollowups: {
       waitingHumanFirstOffer: pickString(topicFollowups.waitingHumanFirstOffer, DEFAULT_BOT_MESSAGES.topicFollowups.waitingHumanFirstOffer),
       waitingHumanRepeat: pickString(topicFollowups.waitingHumanRepeat, DEFAULT_BOT_MESSAGES.topicFollowups.waitingHumanRepeat),
-      generic: pickString(topicFollowups.generic, DEFAULT_BOT_MESSAGES.topicFollowups.generic)
+      generic: pickString(topicFollowups.generic, DEFAULT_BOT_MESSAGES.topicFollowups.generic),
+      coordinandoTurno: pickString(topicFollowups.coordinandoTurno, DEFAULT_BOT_MESSAGES.topicFollowups.coordinandoTurno),
+      comprobanteRecibido: pickString(topicFollowups.comprobanteRecibido, DEFAULT_BOT_MESSAGES.topicFollowups.comprobanteRecibido)
     },
     commands: {
       help: pickString(commands.help, DEFAULT_BOT_MESSAGES.commands.help),
@@ -900,7 +966,12 @@ function createConversationSummary(conversation) {
     waitingForHuman: conversation.waitingForHuman,
     humanFallbackOffered: conversation.humanFallbackOffered,
     escalationReason: conversation.escalationReason,
-    conflictLevel: conversation.conflictLevel
+    conflictLevel: conversation.conflictLevel,
+    paymentReceiptStatus: conversation.paymentReceiptStatus || '',
+    offeredCalendarSlots: normalizeCalendarSlots(conversation.offeredCalendarSlots),
+    selectedCalendarSlotStart: conversation.selectedCalendarSlotStart || '',
+    selectedCalendarSlotEnd: conversation.selectedCalendarSlotEnd || '',
+    calendarEventId: conversation.calendarEventId || ''
   }
 }
 
@@ -1055,6 +1126,26 @@ async function updateConversationMetadata(jid, updates) {
     current.conflictLevel = normalizeConflictLevel(updates.conflictLevel)
   }
 
+  if (typeof updates.paymentReceiptStatus === 'string') {
+    current.paymentReceiptStatus = normalizePaymentReceiptStatus(updates.paymentReceiptStatus)
+  }
+
+  if (Array.isArray(updates.offeredCalendarSlots)) {
+    current.offeredCalendarSlots = normalizeCalendarSlots(updates.offeredCalendarSlots)
+  }
+
+  if (typeof updates.selectedCalendarSlotStart === 'string') {
+    current.selectedCalendarSlotStart = updates.selectedCalendarSlotStart.trim()
+  }
+
+  if (typeof updates.selectedCalendarSlotEnd === 'string') {
+    current.selectedCalendarSlotEnd = updates.selectedCalendarSlotEnd.trim()
+  }
+
+  if (typeof updates.calendarEventId === 'string') {
+    current.calendarEventId = updates.calendarEventId.trim()
+  }
+
   if (typeof updates.shouldUseNameGreeting === 'boolean') {
     current.shouldUseNameGreeting = updates.shouldUseNameGreeting
   }
@@ -1114,6 +1205,395 @@ async function sendManualReply(jid, text) {
   })
 
   return getConversation(jid)
+}
+
+async function maybeCreateCalendarEventAfterVerification(jid) {
+  const result = await createCalendarEventForConversation(jid)
+  if (!result.ok) return result
+
+  if (activeSocket) {
+    const conversation = getConversation(jid)
+    if (conversation) {
+      await sendText(activeSocket, jid, `Pago verificado y turno confirmado para ${formatSlotDateTime(conversation.selectedCalendarSlotStart)} 💚`, conversation.name || '', { includeGreeting: false })
+    }
+  }
+
+  return result
+}
+
+async function applyConversationMetadataUpdate(jid, updates) {
+  const existingConversation = getConversation(jid)
+  const previous = existingConversation ? structuredClone(existingConversation) : null
+  const conversation = await updateConversationMetadata(jid, updates)
+  if (!conversation) return null
+
+  const paymentChangedToVerified = previous?.paymentReceiptStatus !== 'verified' && conversation.paymentReceiptStatus === 'verified'
+  if (paymentChangedToVerified) {
+    const result = await maybeCreateCalendarEventAfterVerification(jid)
+    if (result.reason === 'slot_unavailable' && activeSocket) {
+      await sendText(activeSocket, jid, 'El horario que habias elegido ya no esta disponible. Te comparto nuevas opciones para que elijas otro turno.', conversation.name || '', { includeGreeting: false })
+      await sendAvailableCalendarSlots(activeSocket, jid, conversation.name || '')
+    }
+  }
+
+  return getConversation(jid)
+}
+
+let googleCalendarClient = null
+let googleCalendarClientPromise = null
+
+function isCalendarConfigured() {
+  return Boolean(GOOGLE_CALENDAR_CLIENT_EMAIL && GOOGLE_CALENDAR_PRIVATE_KEY && GOOGLE_CALENDAR_ID)
+}
+
+async function getCalendarClient() {
+  if (googleCalendarClient) return googleCalendarClient
+  if (!isCalendarConfigured()) return null
+  if (googleCalendarClientPromise) return googleCalendarClientPromise
+
+  googleCalendarClientPromise = (async () => {
+    try {
+      const { google } = await import('googleapis')
+      const auth = new google.auth.JWT({
+        email: GOOGLE_CALENDAR_CLIENT_EMAIL,
+        key: GOOGLE_CALENDAR_PRIVATE_KEY,
+        scopes: ['https://www.googleapis.com/auth/calendar']
+      })
+      await auth.authorize()
+      googleCalendarClient = google.calendar({ version: 'v3', auth })
+      return googleCalendarClient
+    } catch (error) {
+      console.error('No se pudo inicializar Google Calendar:', error.message)
+      googleCalendarClientPromise = null
+      return null
+    }
+  })()
+
+  return googleCalendarClientPromise
+}
+
+function parseHourMinutes(value, fallback) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value || '')
+  if (!match) return fallback
+  const hour = Number(match[1])
+  const minute = Number(match[2])
+  if (Number.isNaN(hour) || Number.isNaN(minute) || hour > 23 || minute > 59) return fallback
+  return { hour, minute }
+}
+
+function getTimeZoneParts(date, timeZone) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+  const parts = Object.fromEntries(formatter.formatToParts(date)
+    .filter((part) => part.type !== 'literal')
+    .map((part) => [part.type, part.value]))
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour),
+    minute: Number(parts.minute),
+    second: Number(parts.second)
+  }
+}
+
+function getTimeZoneOffsetMs(date, timeZone) {
+  const parts = getTimeZoneParts(date, timeZone)
+  const asUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second)
+  return asUtc - date.getTime()
+}
+
+function zonedDateTimeToUtc(year, month, day, hour, minute, timeZone) {
+  const guess = Date.UTC(year, month - 1, day, hour, minute, 0)
+  const offset = getTimeZoneOffsetMs(new Date(guess), timeZone)
+  return new Date(guess - offset)
+}
+
+function addDaysToCalendarDate({ year, month, day }, daysToAdd) {
+  const date = new Date(Date.UTC(year, month - 1, day + daysToAdd, 12, 0, 0))
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate()
+  }
+}
+
+function isBusinessCalendarDate({ year, month, day }) {
+  const weekday = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).getUTCDay()
+  return weekday >= 1 && weekday <= 5
+}
+
+function formatSlotDateTime(isoString) {
+  return new Intl.DateTimeFormat('es-AR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: GOOGLE_CALENDAR_TIMEZONE
+  }).format(new Date(isoString))
+}
+
+function getSlotOptionLabel(slot) {
+  return formatSlotDateTime(slot.start)
+}
+
+function getTopicDisplayLabel(topic) {
+  const labels = {
+    'turnos': 'Turno nutricional',
+    'consulta-nutricional': 'Consulta nutricional',
+    'nutricion-deportiva': 'Nutricion deportiva',
+    'antropometria': 'Antropometria',
+    'antropometria-vs-inbody': 'Antropometria',
+    'antropometria-plan': 'Consulta nutricional',
+    'neurologia': 'Consulta de neurologia',
+    'valores': 'Turno nutricional',
+    'ubicacion': 'Turno nutricional',
+    'diabetes': 'Consulta por diabetes',
+    'descenso-peso': 'Consulta por descenso de peso',
+    'reserva-turno': 'Reserva de turno'
+  }
+  return labels[topic] || 'Turno nutricional'
+}
+
+function hasSelectedCalendarSlot(conversation) {
+  return Boolean(conversation?.selectedCalendarSlotStart && conversation?.selectedCalendarSlotEnd)
+}
+
+function isRescheduleRequest(text) {
+  return includesAny(text, ['reprogramar', 'reprogramo', 'cambiar turno', 'cambiar horario', 'otro horario', 'otro turno'])
+}
+
+function isCancellationRequest(text) {
+  return includesAny(text, ['cancelar turno', 'cancelar reserva', 'cancelar', 'no puedo asistir', 'no podre asistir', 'no podre ir', 'no voy a poder'])
+}
+
+function extractSchedulingChoice(text, offeredSlots) {
+  if (!Array.isArray(offeredSlots) || offeredSlots.length === 0) return null
+  if (SCHEDULING_SELECTION_TEXTS.has(text)) {
+    return offeredSlots.find((slot) => slot.id === text) || null
+  }
+  return null
+}
+
+function buildCalendarOfferText(slots) {
+  const optionsText = slots.map((slot) => `${slot.id}. ${getSlotOptionLabel(slot)}`).join('\n')
+  return [
+    'Estos son los proximos horarios disponibles:',
+    '',
+    optionsText,
+    '',
+    'Responde con 1, 2 o 3 para reservar una opcion. Si necesitas otro horario, decime y te comparto mas alternativas.'
+  ].join('\n')
+}
+
+async function isCalendarSlotStillAvailable(start, end) {
+  const client = await getCalendarClient()
+  if (!client) return false
+  const response = await client.freebusy.query({
+    requestBody: {
+      timeMin: start,
+      timeMax: end,
+      timeZone: GOOGLE_CALENDAR_TIMEZONE,
+      items: [{ id: GOOGLE_CALENDAR_ID }]
+    }
+  })
+  const busyRanges = response.data.calendars?.[GOOGLE_CALENDAR_ID]?.busy || []
+  return busyRanges.length === 0
+}
+
+function buildCalendarEventPayload(conversation) {
+  return {
+    summary: `${getTopicDisplayLabel(conversation.currentTopic)} - ${conversation.name || conversation.jid}`,
+    description: [
+      `Contacto: ${conversation.name || 'Sin nombre'}`,
+      `JID: ${conversation.jid}`,
+      `Tema: ${conversation.currentTopic || 'sin tema'}`,
+      conversation.notes ? `Notas: ${conversation.notes}` : ''
+    ].filter(Boolean).join('\n'),
+    start: {
+      dateTime: conversation.selectedCalendarSlotStart,
+      timeZone: GOOGLE_CALENDAR_TIMEZONE
+    },
+    end: {
+      dateTime: conversation.selectedCalendarSlotEnd,
+      timeZone: GOOGLE_CALENDAR_TIMEZONE
+    }
+  }
+}
+
+async function createCalendarEventForConversation(jid) {
+  const conversation = getConversation(jid)
+  if (!conversation || conversation.paymentReceiptStatus !== 'verified' || !hasSelectedCalendarSlot(conversation) || conversation.calendarEventId) {
+    return { ok: false, reason: 'not_ready' }
+  }
+
+  if (!isCalendarConfigured()) {
+    return { ok: false, reason: 'not_configured' }
+  }
+
+  const client = await getCalendarClient()
+  if (!client) {
+    return { ok: false, reason: 'auth_failed' }
+  }
+
+  const slotAvailable = await isCalendarSlotStillAvailable(conversation.selectedCalendarSlotStart, conversation.selectedCalendarSlotEnd)
+  if (!slotAvailable) {
+    await updateConversationMetadata(jid, {
+      selectedCalendarSlotStart: '',
+      selectedCalendarSlotEnd: '',
+      offeredCalendarSlots: []
+    })
+    return { ok: false, reason: 'slot_unavailable' }
+  }
+
+  const response = await client.events.insert({
+    calendarId: GOOGLE_CALENDAR_ID,
+    requestBody: buildCalendarEventPayload(conversation)
+  })
+
+  await updateConversationMetadata(jid, {
+    calendarEventId: response.data.id || '',
+    offeredCalendarSlots: []
+  })
+
+  return { ok: true, eventId: response.data.id || '' }
+}
+
+async function cancelCalendarEvent(conversation) {
+  if (!conversation?.calendarEventId || !isCalendarConfigured()) return
+  const client = await getCalendarClient()
+  if (!client) return
+  try {
+    await client.events.delete({
+      calendarId: GOOGLE_CALENDAR_ID,
+      eventId: conversation.calendarEventId
+    })
+  } catch (error) {
+    if (error?.code !== 404) {
+      console.error('No se pudo cancelar el evento en Google Calendar:', error.message)
+    }
+  }
+}
+
+async function sendAvailableCalendarSlots(sock, sender, name, options = {}) {
+  const availability = await getCalendarAvailability(options.daysAhead)
+  if (!availability.configured) {
+    return { sent: false, reason: 'not_configured' }
+  }
+
+  if (!availability.available) {
+    await sendText(sock, sender, 'Estoy teniendo un problema para consultar la agenda en este momento. Si queres, dejame tu disponibilidad y te respondo apenas la verifique.', name, { includeGreeting: false })
+    return { sent: false, reason: 'unavailable' }
+  }
+
+  const freeSlots = availability.slots.filter((slot) => !slot.busy).slice(0, 3)
+  if (freeSlots.length === 0) {
+    await sendText(sock, sender, 'Por ahora no veo horarios libres en los proximos dias. Si queres, decime que disponibilidad tenes y te comparto nuevas opciones en cuanto se liberen.', name, { includeGreeting: false })
+    await updateConversationMetadata(sender, { offeredCalendarSlots: [] })
+    return { sent: false, reason: 'empty' }
+  }
+
+  const offeredCalendarSlots = freeSlots.map((slot, index) => ({
+    id: String(index + 1),
+    start: slot.start,
+    end: slot.end
+  }))
+
+  await updateConversationMetadata(sender, { offeredCalendarSlots })
+  await sendText(sock, sender, buildCalendarOfferText(offeredCalendarSlots), name, { includeGreeting: false })
+  return { sent: true, offeredCalendarSlots }
+}
+
+async function getCalendarAvailability(daysAhead = GOOGLE_CALENDAR_DAYS_AHEAD) {
+  if (!isCalendarConfigured()) {
+    return { configured: false, slots: [], setupHint: 'Configurar GOOGLE_CALENDAR_CLIENT_EMAIL, GOOGLE_CALENDAR_PRIVATE_KEY y GOOGLE_CALENDAR_ID en .env' }
+  }
+
+  const client = await getCalendarClient()
+  if (!client) {
+    return { configured: true, available: false, slots: [], error: 'No se pudo autenticar con Google Calendar (revisar credenciales y permisos del calendario)' }
+  }
+
+  const days = Math.min(Math.max(1, Number(daysAhead) || 1), 30)
+  const now = new Date()
+  const zonedToday = getTimeZoneParts(now, GOOGLE_CALENDAR_TIMEZONE)
+  const timeMax = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+
+  try {
+    const fbResponse = await client.freebusy.query({
+      requestBody: {
+        timeMin: now.toISOString(),
+        timeMax: timeMax.toISOString(),
+        timeZone: GOOGLE_CALENDAR_TIMEZONE,
+        items: [{ id: GOOGLE_CALENDAR_ID }]
+      }
+    })
+
+    const busyRanges = (fbResponse.data.calendars?.[GOOGLE_CALENDAR_ID]?.busy || [])
+      .map((range) => ({ start: new Date(range.start).getTime(), end: new Date(range.end).getTime() }))
+
+    const workStart = parseHourMinutes(GOOGLE_CALENDAR_WORK_START, { hour: 9, minute: 0 })
+    const workEnd = parseHourMinutes(GOOGLE_CALENDAR_WORK_END, { hour: 18, minute: 0 })
+    const slotMs = Math.max(15, GOOGLE_CALENDAR_SLOT_MINUTES) * 60 * 1000
+    const slots = []
+
+    for (let dayOffset = 0; dayOffset < days; dayOffset += 1) {
+      const calendarDate = addDaysToCalendarDate(zonedToday, dayOffset)
+      if (!isBusinessCalendarDate(calendarDate)) continue
+
+      const day = zonedDateTimeToUtc(
+        calendarDate.year,
+        calendarDate.month,
+        calendarDate.day,
+        workStart.hour,
+        workStart.minute,
+        GOOGLE_CALENDAR_TIMEZONE
+      )
+      const dayEnd = zonedDateTimeToUtc(
+        calendarDate.year,
+        calendarDate.month,
+        calendarDate.day,
+        workEnd.hour,
+        workEnd.minute,
+        GOOGLE_CALENDAR_TIMEZONE
+      )
+
+      for (let slotStart = day.getTime(); slotStart + slotMs <= dayEnd.getTime(); slotStart += slotMs) {
+        const slotEnd = slotStart + slotMs
+        if (slotStart < now.getTime()) continue
+
+        const busy = busyRanges.some((range) => slotStart < range.end && slotEnd > range.start)
+        slots.push({
+          start: new Date(slotStart).toISOString(),
+          end: new Date(slotEnd).toISOString(),
+          busy
+        })
+      }
+    }
+
+    return {
+      configured: true,
+      available: true,
+      timezone: GOOGLE_CALENDAR_TIMEZONE,
+      slotMinutes: GOOGLE_CALENDAR_SLOT_MINUTES,
+      workStart: GOOGLE_CALENDAR_WORK_START,
+      workEnd: GOOGLE_CALENDAR_WORK_END,
+      slots
+    }
+  } catch (error) {
+    console.error('Error consultando Google Calendar:', error.message)
+    return { configured: true, available: false, slots: [], error: error.message || 'Error consultando Google Calendar' }
+  }
 }
 
 async function clearAuthDirectory() {
@@ -1281,6 +1761,13 @@ async function handleAdminRequest(req, res) {
     return
   }
 
+  if (req.method === 'GET' && requestUrl.pathname === '/api/calendar/availability') {
+    const days = Number(requestUrl.searchParams.get('days')) || GOOGLE_CALENDAR_DAYS_AHEAD
+    const result = await getCalendarAvailability(days)
+    sendJson(res, 200, result)
+    return
+  }
+
   if (req.method === 'POST' && requestUrl.pathname === '/api/logout') {
     await logoutWhatsappSession()
     sendJson(res, 200, { ok: true })
@@ -1332,7 +1819,7 @@ async function handleAdminRequest(req, res) {
     const jid = decodeURIComponent(requestUrl.pathname.replace('/api/conversations/', ''))
     const rawBody = await readRequestBody(req)
     const payload = rawBody ? JSON.parse(rawBody) : {}
-    const conversation = await updateConversationMetadata(jid, payload)
+    const conversation = await applyConversationMetadataUpdate(jid, payload)
 
     if (!conversation) {
       sendJson(res, 404, { error: 'Conversation not found' })
@@ -1480,7 +1967,7 @@ async function sendHumanHandoff(sock, sender, name = '', escalationReason = 'Sol
 }
 
 async function handleTopicFollowUp(sock, sender, text, name, conversation) {
-  if (!conversation || !shouldTreatAsTopicMessage(text)) return false
+  if (!conversation) return false
 
   if (conversation.waitingForHuman) {
     if (!conversation.humanFallbackOffered) {
@@ -1499,6 +1986,71 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
     return true
   }
 
+  if (COORDINATING_TOPICS.has(conversation.currentTopic)) {
+    if (isCancellationRequest(text) && (conversation.calendarEventId || hasSelectedCalendarSlot(conversation))) {
+      await cancelCalendarEvent(conversation)
+      await applyConversationMetadataUpdate(sender, {
+        offeredCalendarSlots: [],
+        selectedCalendarSlotStart: '',
+        selectedCalendarSlotEnd: '',
+        calendarEventId: ''
+      })
+      await sendText(sock, sender, 'Dejamos cancelado el turno. Si mas adelante queres coordinar uno nuevo, escribime y te comparto horarios disponibles.', name, { includeGreeting: false })
+      return true
+    }
+
+    if (isRescheduleRequest(text) && (conversation.calendarEventId || hasSelectedCalendarSlot(conversation))) {
+      await cancelCalendarEvent(conversation)
+      await applyConversationMetadataUpdate(sender, {
+        offeredCalendarSlots: [],
+        selectedCalendarSlotStart: '',
+        selectedCalendarSlotEnd: '',
+        calendarEventId: ''
+      })
+      await sendText(sock, sender, 'Perfecto, dejamos liberado el horario anterior y te comparto nuevas opciones.', name, { includeGreeting: false })
+      await sendAvailableCalendarSlots(sock, sender, name)
+      return true
+    }
+
+    const selectedOption = extractSchedulingChoice(text, conversation.offeredCalendarSlots)
+    if (selectedOption) {
+      await applyConversationMetadataUpdate(sender, {
+        selectedCalendarSlotStart: selectedOption.start,
+        selectedCalendarSlotEnd: selectedOption.end,
+        offeredCalendarSlots: []
+      })
+      await sendText(sock, sender, `Reserve provisoriamente la opcion ${selectedOption.id}: ${getSlotOptionLabel(selectedOption)}.`, name, { includeGreeting: false })
+
+      const refreshedConversation = getConversation(sender)
+      if (refreshedConversation?.paymentReceiptStatus === 'verified') {
+        const result = await maybeCreateCalendarEventAfterVerification(sender)
+        if (result.ok) return true
+        if (result.reason === 'slot_unavailable') {
+          await sendText(sock, sender, 'Ese horario ya no esta disponible. Te comparto nuevas opciones para elegir otro turno.', name, { includeGreeting: false })
+          await sendAvailableCalendarSlots(sock, sender, name)
+          return true
+        }
+      }
+
+      if (refreshedConversation?.paymentReceiptStatus !== 'received' && refreshedConversation?.paymentReceiptStatus !== 'verified') {
+        await setConversationFlow(sender, { paymentReceiptStatus: 'requested' })
+        await sendText(sock, sender, botMessages.intents.reservaTurno, name, { includeGreeting: false })
+      } else if (refreshedConversation?.paymentReceiptStatus === 'received') {
+        await sendText(sock, sender, 'Ya tenemos tu comprobante 🙌 Apenas verifiquemos el pago, confirmamos el turno y lo agendamos automaticamente.', name, { includeGreeting: false })
+      }
+      return true
+    }
+
+    await sendText(sock, sender, botMessages.topicFollowups.coordinandoTurno, name, { includeGreeting: false })
+    if (conversation.paymentReceiptStatus !== 'received' && conversation.paymentReceiptStatus !== 'verified') {
+      await setConversationFlow(sender, { paymentReceiptStatus: 'requested' })
+    }
+    await sendAvailableCalendarSlots(sock, sender, name)
+    return true
+  }
+
+  if (!shouldTreatAsTopicMessage(text)) return false
+
   if (conversation.currentTopic) {
     await sendText(sock, sender, botMessages.topicFollowups.generic, name, { includeGreeting: false })
     return true
@@ -1509,12 +2061,23 @@ async function handleTopicFollowUp(sock, sender, text, name, conversation) {
 
 async function handleCommand(sock, sender, text, name) {
   const conversation = getConversation(sender)
-  const intent = detectIntent(text, conversation?.currentTopic || '')
+  const intent = detectIntent(text)
   const conflict = detectConflictLevel(text)
 
   if (conflict) {
     await sendHumanHandoff(sock, sender, name, conflict.reason, conflict.level)
     return true
+  }
+
+  if (conversation && COORDINATING_TOPICS.has(conversation.currentTopic)) {
+    const wantsSchedulingAction = Boolean(
+      extractSchedulingChoice(text, conversation.offeredCalendarSlots) ||
+      isRescheduleRequest(text) ||
+      isCancellationRequest(text)
+    )
+    if (wantsSchedulingAction && await handleTopicFollowUp(sock, sender, text, name, conversation)) {
+      return true
+    }
   }
 
   if (text === '!help') {
@@ -1588,7 +2151,11 @@ async function handleCommand(sock, sender, text, name) {
   const dispatch = INTENT_DISPATCH[intent]
   if (dispatch) {
     await sendText(sock, sender, botMessages.intents[dispatch.messageKey], name)
-    await setConversationFlow(sender, { currentTopic: dispatch.topic, waitingForHuman: false })
+    const flow = { currentTopic: dispatch.topic, waitingForHuman: false }
+    if (dispatch.requestsReceipt && conversation?.paymentReceiptStatus !== 'received' && conversation?.paymentReceiptStatus !== 'verified') {
+      flow.paymentReceiptStatus = 'requested'
+    }
+    await setConversationFlow(sender, flow)
     return true
   }
 
@@ -1715,21 +2282,52 @@ async function startBot() {
     if (!msg?.message || msg.key.fromMe) return
 
     const sender = msg.key.remoteJid
+    if (!sender || !isConversationChat(sender)) return
+
     const name = getContactName(msg)
     const rawText = getTextFromMessage(msg.message)
     const text = normalizeIncomingText(rawText)
 
-    if (!sender || !text) return
+    const incomingMedia = await downloadIncomingMedia(msg).catch((error) => {
+      console.error('No se pudo descargar el archivo entrante:', error)
+      return null
+    })
 
-    console.log(`Mensaje recibido de ${sender}: ${rawText}`)
+    if (incomingMedia) {
+      console.log(`Archivo recibido de ${sender}: ${incomingMedia.fileName}`)
+      await recordConversationMessage({
+        jid: sender,
+        name,
+        text: rawText,
+        direction: 'in',
+        messageType: incomingMedia.messageType,
+        mediaUrl: incomingMedia.mediaUrl,
+        mimeType: incomingMedia.mimeType,
+        fileName: incomingMedia.fileName
+      })
 
-    await recordConversationMessage({ jid: sender, name, text: rawText, direction: 'in' })
+      const isReceiptMedia = incomingMedia.messageType === 'image' || (incomingMedia.messageType === 'document' && incomingMedia.mimeType.startsWith('application/pdf'))
+      if (isReceiptMedia) {
+        const conversation = getConversation(sender)
+        if (conversation && conversation.paymentReceiptStatus === 'requested') {
+          await applyConversationMetadataUpdate(sender, { paymentReceiptStatus: 'received' })
+          await sendText(sock, sender, botMessages.topicFollowups.comprobanteRecibido, name, { includeGreeting: false })
+        }
+      }
+    } else if (text) {
+      console.log(`Mensaje recibido de ${sender}: ${rawText}`)
+      await recordConversationMessage({ jid: sender, name, text: rawText, direction: 'in' })
+    } else {
+      return
+    }
 
     if (!greetedContacts.has(sender)) {
       greetedContacts.add(sender)
       await sendMenu(sock, sender, name)
       return
     }
+
+    if (!text) return
 
     const wasHandled = await handleCommand(sock, sender, text, name)
     if (wasHandled) return
@@ -1741,6 +2339,52 @@ async function startBot() {
 
     await sendText(sock, sender, botMessages.defaultReply, name)
   })
+}
+
+async function downloadIncomingMedia(msg) {
+  const message = msg?.message
+  if (!message) return null
+
+  const mediaCandidates = [
+    { node: message.imageMessage, messageType: 'image' },
+    { node: message.audioMessage, messageType: 'audio' },
+    { node: message.videoMessage, messageType: 'video' },
+    { node: message.documentMessage, messageType: 'document' },
+    { node: message.stickerMessage, messageType: 'image' }
+  ]
+
+  const found = mediaCandidates.find(({ node }) => node)
+  if (!found) return null
+
+  const buffer = await downloadMediaMessage(msg, 'buffer', {})
+  if (!buffer?.length) return null
+
+  await ensureUploadsDir()
+  const mimeType = found.node.mimetype || ''
+  const suggestedName = found.node.fileName || `${found.messageType}-${randomUUID()}${guessExtensionFromMime(mimeType) || ''}`
+  const fileName = sanitizeUploadFileName(suggestedName)
+  await writeFile(getUploadFileUrl(fileName), buffer)
+
+  return {
+    messageType: found.messageType,
+    mediaUrl: getUploadUrl(fileName),
+    mimeType,
+    fileName
+  }
+}
+
+function guessExtensionFromMime(mimeType = '') {
+  if (mimeType.startsWith('image/jpeg')) return '.jpg'
+  if (mimeType.startsWith('image/png')) return '.png'
+  if (mimeType.startsWith('image/webp')) return '.webp'
+  if (mimeType.startsWith('image/gif')) return '.gif'
+  if (mimeType.startsWith('audio/ogg')) return '.ogg'
+  if (mimeType.startsWith('audio/mpeg')) return '.mp3'
+  if (mimeType.startsWith('audio/')) return '.audio'
+  if (mimeType.startsWith('video/mp4')) return '.mp4'
+  if (mimeType.startsWith('video/')) return '.mp4'
+  if (mimeType === 'application/pdf') return '.pdf'
+  return ''
 }
 
 await ensureConversationStore()

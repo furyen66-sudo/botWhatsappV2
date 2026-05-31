@@ -381,7 +381,8 @@
     .pill,
     .status-badge,
     .unread-badge,
-    .tag-chip {
+    .tag-chip,
+    .receipt-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -396,6 +397,9 @@
     .status-pendiente { background: #f8ebbb; }
     .status-respondida { background: #cbe9d1; }
     .status-urgente { background: #f5c3bc; }
+    .receipt-requested { background: #f8ebbb; }
+    .receipt-received { background: #d9c3ff; }
+    .receipt-verified { background: #cbe9d1; }
     .conflict-leve { background: #f8ddb3; }
     .conflict-agresion,
     .conflict-amenaza { background: #f5c3bc; }
@@ -409,7 +413,10 @@
     body[data-theme="dark"] .conflict-agresion,
     body[data-theme="dark"] .conflict-amenaza,
     body[data-theme="dark"] .unread-badge,
-    body[data-theme="dark"] .tag-chip {
+    body[data-theme="dark"] .tag-chip,
+    body[data-theme="dark"] .receipt-requested,
+    body[data-theme="dark"] .receipt-received,
+    body[data-theme="dark"] .receipt-verified {
       color: #111111;
     }
 
@@ -567,6 +574,65 @@
       font-weight: 800;
     }
 
+    .calendar-availability {
+      display: grid;
+      gap: 10px;
+    }
+
+    .calendar-day {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 10px;
+    }
+
+    .calendar-day-label {
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: capitalize;
+    }
+
+    .calendar-slots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .calendar-slot {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .calendar-slot.free {
+      background: #cbe9d1;
+      color: #111;
+      cursor: pointer;
+    }
+
+    .calendar-slot.busy {
+      background: #f5c3bc;
+      color: #111;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    body[data-theme="dark"] .calendar-slot.free,
+    body[data-theme="dark"] .calendar-slot.busy {
+      color: #111;
+    }
+
+    .calendar-empty,
+    .calendar-config {
+      padding: 14px;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
     @media print {
       .topbar,
       .hero,
@@ -705,6 +771,7 @@
         <div class="summary-card"><div class="summary-label">Tiempo sin responder</div><div id="modalWaitingTime" class="summary-value"></div></div>
         <div class="summary-card"><div class="summary-label">Motivo de derivación</div><div id="modalEscalationReason" class="summary-value"></div></div>
         <div class="summary-card"><div class="summary-label">Nivel de conflicto</div><div id="modalConflictLevel" class="summary-value"></div></div>
+        <div class="summary-card"><div class="summary-label">Comprobante</div><div id="modalReceiptBadge" class="summary-value"></div></div>
       </div>
 
       <h3 class="section-title">Gestión</h3>
@@ -715,12 +782,25 @@
             <option value="respondida">Respondida</option>
             <option value="urgente">Urgente</option>
           </select>
+          <select id="modalReceiptStatus" class="select" aria-label="Estado del comprobante">
+            <option value="">Sin comprobante</option>
+            <option value="requested">Esperando comprobante</option>
+            <option value="received">Comprobante recibido</option>
+            <option value="verified">Turno confirmado</option>
+          </select>
           <button id="markRead" class="button secondary" type="button">Marcar leída</button>
           <button id="saveMetadata" class="button" type="button">Guardar cambios</button>
         </div>
         <input id="modalTags" class="input" type="text" placeholder="Etiquetas separadas por coma. Ej: turno, online, primera vez">
         <textarea id="modalNotes" class="textarea" placeholder="Notas internas del administrador"></textarea>
       </div>
+
+      <h3 class="section-title">Disponibilidad de agenda</h3>
+      <div class="card-actions" style="margin-bottom: 8px;">
+        <button id="loadCalendar" class="button secondary" type="button">Ver disponibilidad próxima</button>
+        <span id="calendarMeta" class="meta"></span>
+      </div>
+      <div id="calendarAvailability" class="calendar-availability"></div>
 
       <h3 class="section-title">Historial completo</h3>
       <div id="messages" class="messages"></div>
@@ -774,6 +854,11 @@
     const modalWaitingTimeEl = document.getElementById('modalWaitingTime')
     const modalEscalationReasonEl = document.getElementById('modalEscalationReason')
     const modalConflictLevelEl = document.getElementById('modalConflictLevel')
+    const modalReceiptBadgeEl = document.getElementById('modalReceiptBadge')
+    const modalReceiptStatusEl = document.getElementById('modalReceiptStatus')
+    const loadCalendarEl = document.getElementById('loadCalendar')
+    const calendarMetaEl = document.getElementById('calendarMeta')
+    const calendarAvailabilityEl = document.getElementById('calendarAvailability')
     const modalTagsEl = document.getElementById('modalTags')
     const modalNotesEl = document.getElementById('modalNotes')
     const markReadEl = document.getElementById('markRead')
@@ -837,6 +922,17 @@
     function getConflictBadge(level) {
       if (!level) return '<span class="meta">Sin conflicto</span>'
       return `<span class="status-badge conflict-${level}">${formatStatusLabel(level)}</span>`
+    }
+
+    const RECEIPT_LABELS = {
+      requested: 'Esperando comprobante',
+      received: 'Comprobante recibido',
+      verified: 'Turno confirmado'
+    }
+
+    function getReceiptBadge(status) {
+      if (!status || !RECEIPT_LABELS[status]) return ''
+      return `<span class="receipt-badge receipt-${status}">${RECEIPT_LABELS[status]}</span>`
     }
 
     function getTags(tags) {
@@ -940,6 +1036,7 @@
             </div>
             <div class="card-actions">
               ${getStatusBadge(conversation.status)}
+              ${getReceiptBadge(conversation.paymentReceiptStatus)}
               ${conversation.conflictLevel ? getConflictBadge(conversation.conflictLevel) : ''}
               ${conversation.unreadCount > 0 ? `<span class="unread-badge">${conversation.unreadCount} no leído(s)</span>` : ''}
               <span class="pill">${conversation.messageCount} mensaje(s)</span>
@@ -1121,6 +1218,10 @@
       modalWaitingTimeEl.textContent = isWaitingForReply(conversation) ? `${formatRelativeTime(conversation.lastIncomingAt)} desde el último mensaje del contacto` : 'No hay espera activa'
       modalEscalationReasonEl.textContent = conversation.escalationReason || 'Sin derivación activa'
       modalConflictLevelEl.innerHTML = getConflictBadge(conversation.conflictLevel)
+      modalReceiptBadgeEl.innerHTML = getReceiptBadge(conversation.paymentReceiptStatus) || '<span class="meta">Sin comprobante</span>'
+      modalReceiptStatusEl.value = conversation.paymentReceiptStatus || ''
+      calendarAvailabilityEl.innerHTML = ''
+      calendarMetaEl.textContent = ''
       modalTagsEl.value = (conversation.tags || []).join(', ')
       modalNotesEl.value = conversation.notes || ''
       quickReplySelectEl.value = ''
@@ -1226,6 +1327,83 @@
       modalStatusBadgeEl.innerHTML = getStatusBadge(modalStatusEl.value)
     })
 
+    modalReceiptStatusEl.addEventListener('change', () => {
+      modalReceiptBadgeEl.innerHTML = getReceiptBadge(modalReceiptStatusEl.value) || '<span class="meta">Sin comprobante</span>'
+    })
+
+    function renderCalendarAvailability(payload) {
+      if (!payload.configured) {
+        calendarAvailabilityEl.innerHTML = `<div class="calendar-config">Google Calendar no está configurado. Cargá las variables <code>GOOGLE_CALENDAR_CLIENT_EMAIL</code>, <code>GOOGLE_CALENDAR_PRIVATE_KEY</code> y <code>GOOGLE_CALENDAR_ID</code> en <code>.env</code> y reiniciá el bot.</div>`
+        return
+      }
+
+      if (!payload.available) {
+        calendarAvailabilityEl.innerHTML = `<div class="calendar-config">No se pudo consultar el calendario: ${escapeHtml(payload.error || 'error desconocido')}</div>`
+        return
+      }
+
+      if (!payload.slots || payload.slots.length === 0) {
+        calendarAvailabilityEl.innerHTML = '<div class="calendar-empty">Sin slots para mostrar en el rango configurado.</div>'
+        return
+      }
+
+      const byDay = new Map()
+      for (const slot of payload.slots) {
+        const start = new Date(slot.start)
+        const dayKey = start.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: '2-digit' })
+        if (!byDay.has(dayKey)) byDay.set(dayKey, [])
+        byDay.get(dayKey).push(slot)
+      }
+
+      calendarAvailabilityEl.innerHTML = [...byDay.entries()].map(([day, slots]) => `
+        <article class="calendar-day">
+          <div class="calendar-day-label">${escapeHtml(day)}</div>
+          <div class="calendar-slots">
+            ${slots.map((slot) => {
+              const start = new Date(slot.start)
+              const label = start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+              const cls = slot.busy ? 'calendar-slot busy' : 'calendar-slot free'
+              const dataAttr = slot.busy ? '' : ` data-slot-start="${slot.start}"`
+              return `<span class="${cls}"${dataAttr} title="${slot.busy ? 'Ocupado' : 'Disponible — clic para copiar texto'}">${escapeHtml(label)}</span>`
+            }).join('')}
+          </div>
+        </article>
+      `).join('')
+    }
+
+    loadCalendarEl.addEventListener('click', async () => {
+      loadCalendarEl.disabled = true
+      const previousLabel = loadCalendarEl.textContent
+      loadCalendarEl.textContent = 'Cargando…'
+      calendarMetaEl.textContent = ''
+
+      try {
+        const response = await fetch('/api/calendar/availability')
+        const payload = await response.json()
+        renderCalendarAvailability(payload)
+        if (payload.configured && payload.available) {
+          calendarMetaEl.textContent = `Slots de ${payload.slotMinutes} min entre ${payload.workStart} y ${payload.workEnd} (${payload.timezone})`
+        }
+      } catch (error) {
+        calendarAvailabilityEl.innerHTML = `<div class="calendar-config">Error consultando disponibilidad: ${escapeHtml(error.message || 'desconocido')}</div>`
+      } finally {
+        loadCalendarEl.disabled = false
+        loadCalendarEl.textContent = previousLabel
+      }
+    })
+
+    calendarAvailabilityEl.addEventListener('click', (event) => {
+      const slotEl = event.target.closest('[data-slot-start]')
+      if (!slotEl) return
+      const start = new Date(slotEl.dataset.slotStart)
+      const dateLabel = start.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: '2-digit' })
+      const timeLabel = start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+      const snippet = `Disponible el ${dateLabel} a las ${timeLabel}. ¿Te coordinamos ahí?`
+      replyTextEl.value = replyTextEl.value ? `${replyTextEl.value}\n${snippet}` : snippet
+      setActiveTab('reply')
+      replyTextEl.focus()
+    })
+
     quickReplySelectEl.addEventListener('change', () => {
       const selected = quickReplies.find((reply) => reply.id === quickReplySelectEl.value)
       if (!selected) return
@@ -1237,7 +1415,8 @@
       await updateConversation(activeConversationJid, {
         status: modalStatusEl.value,
         notes: modalNotesEl.value,
-        tags: parseTags(modalTagsEl.value)
+        tags: parseTags(modalTagsEl.value),
+        paymentReceiptStatus: modalReceiptStatusEl.value
       })
       await loadConversations()
       await openConversation(activeConversationJid)

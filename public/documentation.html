@@ -360,6 +360,8 @@
       <a href="#tema">22. Modo día / noche</a>
       <a href="#sesion">23. Cerrar sesión</a>
       <a href="#configuracion">23b. Panel de configuración</a>
+      <a href="#comprobante">23c. Flujo de comprobante</a>
+      <a href="#calendar">23d. Google Calendar</a>
       <a href="#actualizacion">24. Actualización automática</a>
       <a href="#sonido">25. Notificación sonora</a>
       <a href="#impresion">26. Exportar PDF</a>
@@ -684,7 +686,9 @@
         <li>Detecta si el texto contiene insultos, agresiones o amenazas. Si los detecta, deriva al humano con el motivo y el nivel correspondiente.</li>
         <li>Detecta comandos especiales (ver sección 20).</li>
         <li>Detecta intenciones del menú (turnos, obras sociales, consulta nutricional, nutrición deportiva, antropometría, neurología, valores, ubicación, hablar con Celia) y sub-intenciones por palabras clave (reserva del turno, política de inasistencia, antropometría vs InBody, diabetes, descenso de peso, etc.).</li>
-        <li>Si la conversación ya tenía un tema en curso, envía un acuse genérico para que el operador retome.</li>
+        <li>Si la conversación ya tenía un tema de coordinación en curso (turnos, nutrición deportiva, antropometría, valores, ubicación, neurología, diabetes, descenso de peso, etc.), envía el mensaje <em>"Verifico disponibilidad + pedí comprobante"</em> y marca la conversación como <strong>Esperando comprobante</strong>.</li>
+        <li>Si el contacto envía una imagen mientras la conversación está en <em>Esperando comprobante</em>, el sistema la guarda en <code>data/uploads/</code>, marca la conversación como <strong>Comprobante recibido</strong> y le envía un acuse al contacto.</li>
+        <li>Si la conversación tenía un tema no-coordinador activo, envía un acuse genérico para que el operador retome.</li>
         <li>Si todo lo anterior falla y el texto es un saludo, vuelve a mostrar el menú; si no, responde con el mensaje por defecto definido en <code>DEFAULT_REPLY</code>.</li>
       </ol>
       <p>El menú principal tiene nueve opciones numeradas con emojis (1️⃣ Turnos, 2️⃣ Obras sociales, 3️⃣ Consulta nutricional, 4️⃣ Nutrición deportiva, 5️⃣ Antropometría de 5 componentes, 6️⃣ Neurología, 7️⃣ Valores, 8️⃣ Ubicación, 9️⃣ Hablar con Celia). Las palabras clave para auto-detección incluyen: <em>turno</em>, <em>obra social</em>, <em>precio</em>, <em>valores</em>, <em>antropometría</em>, <em>deportista</em>, <em>crossfit</em>, <em>rendimiento</em>, <em>diabetes</em>, <em>neurología</em>, <em>dirección</em>, <em>ubicación</em>, <em>consulta</em>, <em>plan alimentario</em>, entre otras.</p>
@@ -776,6 +780,70 @@
       <div class="note">
         <strong>Persistencia</strong>
         Los cambios se guardan en <code>data/messages.json</code> y <code>data/conflict-rules.json</code>. El bot lee de memoria en cada respuesta, así que los cambios surten efecto en el siguiente mensaje sin reiniciar el proceso.
+      </div>
+    </section>
+
+    <section id="comprobante" class="section">
+      <h2>23c. Flujo de comprobante de seña</h2>
+      <p>Cada conversación tiene un campo adicional <code>paymentReceiptStatus</code> que sigue el estado del pago de la seña. Se muestra como una chapa nueva al lado del estado en cada tarjeta y en el modal.</p>
+      <h3>Los 4 estados</h3>
+      <ul>
+        <li><strong>(sin chapa):</strong> la conversación nunca pidió seña. Es el valor por defecto.</li>
+        <li><strong>🟡 Esperando comprobante:</strong> el bot ya pidió la seña (porque envió la respuesta del intent <em>Reserva del turno</em> o el follow-up <em>Verifico disponibilidad + comprobante</em>).</li>
+        <li><strong>🟣 Comprobante recibido:</strong> llegó una imagen del contacto mientras estaba en <em>Esperando comprobante</em>. Lo marca el sistema automáticamente y manda un acuse al contacto.</li>
+        <li><strong>🟢 Turno confirmado:</strong> lo marca manualmente el operador después de verificar el pago.</li>
+      </ul>
+      <h3>Auto-detección de imágenes</h3>
+      <p>Cuando llega un mensaje con imagen (independientemente de si tiene texto), el bot:</p>
+      <ol>
+        <li>Descarga el archivo usando Baileys (<code>downloadMediaMessage</code>) y lo guarda en <code>data/uploads/</code>.</li>
+        <li>Registra el mensaje en el historial con la URL del archivo, así el operador puede visualizar el comprobante desde el panel.</li>
+        <li>Si la conversación tenía estado <em>Esperando comprobante</em>, lo pasa a <em>Comprobante recibido</em> y le envía al contacto el texto editable <code>topicFollowups.comprobanteRecibido</code>.</li>
+      </ol>
+      <h3>Control manual desde el panel</h3>
+      <p>En el modal hay un nuevo selector (<em>Sin comprobante / Esperando / Recibido / Turno confirmado</em>) al lado del selector de estado. Permite corregir manualmente si la auto-detección no aplica o si el operador quiere marcar como verificado después de revisar el pago.</p>
+      <div class="note">
+        <strong>Importante</strong>
+        El mensaje <em>"Verifico disponibilidad + comprobante"</em> se envía automáticamente solo cuando el contacto escribe DESPUÉS de haber recibido una respuesta de coordinación. Si el operador no quiere que se dispare, puede cambiar el currentTopic editando la conversación.
+      </div>
+    </section>
+
+    <section id="calendar" class="section">
+      <h2>23d. Integración Google Calendar (lectura)</h2>
+      <p>El modal de cada conversación incluye una sección <em>Disponibilidad de agenda</em> con un botón <strong>Ver disponibilidad próxima</strong>. Al hacer clic, consulta la API de Google Calendar y muestra los slots libres y ocupados del calendario configurado (por defecto, los próximos 7 días).</p>
+      <h3>Cómo se calculan los slots</h3>
+      <ul>
+        <li>Toma <code>GOOGLE_CALENDAR_WORK_START</code> y <code>GOOGLE_CALENDAR_WORK_END</code> como horario laboral.</li>
+        <li>Divide cada día en bloques del tamaño <code>GOOGLE_CALENDAR_SLOT_MINUTES</code> (60 por defecto).</li>
+        <li>Para cada bloque consulta <code>freebusy.query</code> y lo marca como libre 🟢 u ocupado 🔴.</li>
+        <li>Hacer clic en un slot libre copia un texto sugerido al compositor de respuesta ("Disponible el lunes 02/06 a las 09:00. ¿Te coordinamos ahí?") y abre la pestaña <em>Responder</em>.</li>
+      </ul>
+      <h3>Configuración (Service Account, una sola vez)</h3>
+      <ol>
+        <li>En <code>console.cloud.google.com</code>: crear un proyecto.</li>
+        <li>Habilitar la <strong>Google Calendar API</strong> en ese proyecto.</li>
+        <li>Crear una <strong>Service Account</strong>. Descargar el JSON con la key.</li>
+        <li>En Google Calendar (la cuenta de Celia): compartir el calendario con el <code>client_email</code> del Service Account, dando permiso <em>"Ver todos los detalles del evento"</em>.</li>
+        <li>En <code>.env</code> del bot, completar:
+          <ul>
+            <li><code>GOOGLE_CALENDAR_CLIENT_EMAIL</code>: campo <code>client_email</code> del JSON.</li>
+            <li><code>GOOGLE_CALENDAR_PRIVATE_KEY</code>: campo <code>private_key</code> del JSON (con los <code>\n</code> escapados).</li>
+            <li><code>GOOGLE_CALENDAR_ID</code>: ID del calendario (usualmente el email de Celia).</li>
+            <li><code>GOOGLE_CALENDAR_TIMEZONE</code>: zona horaria (ej. <code>America/Argentina/Buenos_Aires</code>).</li>
+            <li><code>GOOGLE_CALENDAR_WORK_START</code> / <code>GOOGLE_CALENDAR_WORK_END</code>: <code>09:00</code> / <code>18:00</code>.</li>
+            <li><code>GOOGLE_CALENDAR_SLOT_MINUTES</code>: <code>60</code>.</li>
+            <li><code>GOOGLE_CALENDAR_DAYS_AHEAD</code>: <code>7</code>.</li>
+          </ul>
+        </li>
+        <li>Reiniciar el bot. El botón <em>Ver disponibilidad</em> ahora trae los slots.</li>
+      </ol>
+      <div class="note">
+        <strong>Solo lectura</strong>
+        Esta integración es de solo lectura. El bot no crea ni modifica eventos. El operador sigue creando el turno manualmente en Google Calendar después de verificar el comprobante. Si en algún momento querés escritura automática, hay que ampliar a Sincronización completa (lectura + escritura) y conceder al Service Account el permiso <em>"Hacer cambios en los eventos"</em>.
+      </div>
+      <div class="note">
+        <strong>Si falta configuración</strong>
+        Mientras no haya credenciales válidas, el botón muestra un mensaje explicando qué variables faltan en <code>.env</code>. El resto del bot funciona normal.
       </div>
     </section>
 

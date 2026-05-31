@@ -23,7 +23,9 @@
   "topicFollowups": {
     "waitingHumanFirstOffer": "Si querés, mientras esperás atención humana, también podemos seguir desde el menú 😊\nTe comparto nuevamente las opciones disponibles.",
     "waitingHumanRepeat": "Si necesitás algo más, podés elegir una opción del menú o dejarnos tu consulta y la revisamos 😊",
-    "generic": "Recibimos tu mensaje 😊 Lo dejamos asentado y te respondemos a la brevedad por este medio 💚"
+    "generic": "Recibimos tu mensaje 😊 Lo dejamos asentado y te respondemos a la brevedad por este medio 💚",
+    "coordinandoTurno": "¡Genial! 😊 Verifico la disponibilidad de agenda y te confirmo el horario en un ratito.\n\nSi querés ir agilizando la reserva, podés enviarnos el comprobante de la seña ($15.000 por transferencia al alias *cefsoler* – Celia Fatima Soler).\n\nUna vez verificado el pago, el turno queda confirmado 💚",
+    "comprobanteRecibido": "¡Recibimos el comprobante! 🙌 Verificamos el pago y te confirmamos el turno en breve."
   },
   "commands": {
     "help": "Soy {{botName}} 🤖.\n\nPodes escribirme hola, menu o turno para ver las opciones disponibles.",
