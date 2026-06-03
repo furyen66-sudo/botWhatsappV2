@@ -103,7 +103,6 @@ const COORDINATING_TOPICS = new Set([
 ])
 const BOOKING_ENTRY_TOPICS = new Set([
   'turnos',
-  'obras-sociales',
   'consulta-nutricional',
   'nutricion-deportiva',
   'antropometria',
@@ -153,6 +152,7 @@ const DEFAULT_CONFLICT_RULES = {
 const TOPIC_VALUES = new Set([
   'turnos',
   'obras-sociales',
+  'obra-social-con-cobertura',
   'obra-social-no-cubierta',
   'consulta-nutricional',
   'nutricion-deportiva',
@@ -189,23 +189,22 @@ const INTENT_DISPATCH = {
 
 const DEFAULT_BOT_MESSAGES = {
   menu: [
-    'Hola 👋 Gracias por comunicarte con Lic. Celia Soler, Nutricionista.',
+    '¡Hola!',
+    '',
+    'Gracias por comunicarte con Lic. Celia Soler, Nutricionista.',
     '',
     '📍 Atención presencial en Clínica El Castaño – Consultorios externos (San Luis y Estados Unidos, San Juan).',
     '',
-    '¿Sobre qué consulta necesitás información?',
+    '📅 Si querés reservar un turno, podés hacerlo directamente desde el siguiente enlace:',
     '',
-    '1️⃣ Turnos',
-    '2️⃣ Obras sociales',
-    '3️⃣ Consulta nutricional',
-    '4️⃣ Nutrición deportiva',
-    '5️⃣ Antropometría de 5 componentes',
-    '6️⃣ Neurología',
-    '7️⃣ Valores',
-    '8️⃣ Ubicación',
-    '9️⃣ Hablar con Celia',
+    '🔗 https://licsoler.site.agendapro.com/ar',
     '',
-    'Respondé con el número o el nombre de la opción que necesites 💬'
+    'Si necesitás ayuda, elegí una opción:',
+    '',
+    '1️⃣ Consultar cobertura de obra social',
+    '2️⃣ Hablar con Celia',
+    '',
+    'Te responderemos a la brevedad 😊'
   ].join('\n'),
   defaultReply: DEFAULT_REPLY,
   intents: {
@@ -218,57 +217,39 @@ const DEFAULT_BOT_MESSAGES = {
       'Una vez recibida la información, te voy a pedir el objetivo de la consulta para seguir con la coordinación.'
     ].join('\n'),
     obrasSociales: [
-      'Sí, trabajo con distintas obras sociales:',
+      'Perfecto',
       '',
-      '✅ AMFFA',
-      '✅ Avalian (ACA Salud)',
-      '✅ DAMSU',
-      '✅ Jerárquicos Salud',
-      '✅ Medicus',
-      '✅ Swiss Medical',
-      '✅ IOSFA',
-      '✅ OMINT',
-      '✅ OSSEG',
-      '✅ Galeno',
-      '✅ Sancor Salud',
-      '✅ Federada Salud',
-      '✅ Andes Salud',
-      '✅ NOBIS',
-      '✅ Red de Seguro Médico',
-      '✅ Prevención Salud',
-      '✅ TV Salud',
-      '✅ Luz y Fuerza',
-      '✅ OSPATCA',
-      '✅ OSPE',
-      '✅ OSPIDA',
-      '✅ OSPIP',
-      '✅ OSPIS',
-      '✅ Poder Judicial',
-      '✅ Policía Federal',
-      '✅ Luis Pasteur',
-      '✅ Higea Salud',
-      '✅ Brindar Salud',
-      '✅ Bramed',
-      '✅ Leal Médica',
+      'Por favor, escribí el nombre de tu obra social y te confirmaré si tiene cobertura.',
       '',
-      'Para verificar cobertura necesito:',
+      'Si trabajamos con ella, también te informaré la documentación necesaria para gestionar la autorización.'
+    ].join('\n'),
+    obraSocialConCobertura: [
+      '✅ Trabajamos con esa obra social.',
       '',
-      '👉 Obra Social',
+      'Valores:',
+      '* Consulta o control: $15.000',
+      '* Primera consulta + plan alimentario: $30.000',
+      '',
+      'Para la atención necesitaremos:',
       '👉 DNI',
       '👉 Número de afiliado/a',
-      '👉 Token (si tu obra social lo requiere)',
+      '👉 Token (si corresponde)',
       '',
-      'Con esos datos te confirmaremos la cobertura y el valor correspondiente.'
+      '📅 Podés reservar tu turno aquí:',
+      '',
+      '🔗 https://licsoler.site.agendapro.com/ar'
     ].join('\n'),
     obraSocialNoCubierta: [
       'Actualmente no trabajo con esa obra social.',
       '',
-      'De todas formas podés realizar la consulta de manera particular:',
+      'De todas formas, podés atenderte de manera particular:',
       '',
-      '• Consulta o control: $30.000',
-      '• Primera consulta + plan alimentario: $60.000',
+      '* Consulta o control: $30.000',
+      '* Primera consulta + plan alimentario: $60.000',
       '',
-      'Si querés coordinar turno, podemos ayudarte 😊'
+      '📅 Reservá tu turno aquí:',
+      '',
+      '🔗 https://licsoler.site.agendapro.com/ar'
     ].join('\n'),
     consultaNutricional: [
       'La consulta incluye:',
@@ -369,9 +350,11 @@ const DEFAULT_BOT_MESSAGES = {
       '¿Querés coordinar tu turno? Decime qué disponibilidad horaria tenés y te comparto los horarios disponibles 😊'
     ].join('\n'),
     hablarConCelia: [
-      'Perfecto 😊',
+      '¡Perfecto! 😊',
       '',
-      'Dejanos tu nombre y tu consulta, y Celia te responderá a la brevedad.'
+      'Dejame tu consulta o contame brevemente cuál es tu objetivo, y Celia te responderá a la brevedad.',
+      '',
+      'Quedo atenta.'
     ].join('\n'),
     reservaTurno: [
       'Para confirmar el turno se solicita una seña de $15.000 mediante transferencia.',
@@ -429,6 +412,15 @@ const DEFAULT_BOT_MESSAGES = {
       '👉 Nombre y apellido',
       '',
       'Una vez recibida la información, te voy a pedir el objetivo de la consulta para seguir con la coordinación.'
+    ].join('\n'),
+    insuranceCoverageConfirmed: [
+      'Perfecto 😊',
+      '',
+      'Con esos datos, a la brevedad nos estaremos contactando.',
+      '',
+      'Si preferís, también podés reservar tu turno directamente acá:',
+      '',
+      '🔗 https://licsoler.site.agendapro.com/ar'
     ].join('\n'),
     comprobanteRecibido: '¡Recibimos el comprobante! 🙌 Verificamos el pago y te confirmamos el turno en breve.'
   },
@@ -748,15 +740,15 @@ function isOperatorRequest(text) {
 function detectIntent(text) {
   if (isOperatorRequest(text)) return 'hablar-con-celia'
 
-  if (text === '1' || includesAny(text, ['sacar turno', 'quiero un turno', 'quiero turno', 'reservar turno', 'agendar turno', 'pedir turno', 'turno por favor'])) return 'turnos'
-  if (text === '2' || includesAny(text, ['obras sociales', 'obra social', 'cobertura', 'prepaga', 'afiliado', 'afiliada', 'me cubre', 'me toman'])) return 'obras-sociales'
-  if (text === '3' || includesAny(text, ['consulta nutricional', 'que incluye la consulta', 'que incluye consulta', 'plan alimentario', 'plan de comidas', 'que evaluas'])) return 'consulta-nutricional'
-  if (text === '4' || includesAny(text, ['nutricion deportiva', 'deportista', 'deportiva', 'crossfit', 'rendimiento deportivo', 'rendimiento', 'entrenamiento', 'entrenando', 'gimnasio', 'corro', 'running', 'futbol', 'rugby'])) return 'nutricion-deportiva'
-  if (text === '5' || includesAny(text, ['antropometria', 'antropometria de 5 componentes', '5 componentes', 'composicion corporal', 'medicion corporal'])) return 'antropometria'
-  if (text === '6' || includesAny(text, ['neurologia', 'neurologico', 'neurologica', 'epilepsia', 'parkinson', 'alzheimer', 'esclerosis'])) return 'neurologia'
-  if (text === '7' || includesAny(text, ['valores', 'valor', 'precio', 'precios', 'cuanto cuesta', 'cuanto sale', 'cuanto vale', 'costo', 'aranceles'])) return 'valores'
-  if (text === '8' || includesAny(text, ['ubicacion', 'donde atendes', 'donde queda', 'donde estas', 'direccion', 'consultorio', 'como llegar', 'google maps', 'maps', 'mapa', 'clinica el castano'])) return 'ubicacion'
-  if (text === '9') return 'hablar-con-celia'
+  if (text === '1' || includesAny(text, ['obras sociales', 'obra social', 'cobertura', 'prepaga', 'afiliado', 'afiliada', 'me cubre', 'me toman'])) return 'obras-sociales'
+  if (text === '2') return 'hablar-con-celia'
+  if (includesAny(text, ['sacar turno', 'quiero un turno', 'quiero turno', 'reservar turno', 'agendar turno', 'pedir turno', 'turno por favor'])) return 'turnos'
+  if (includesAny(text, ['consulta nutricional', 'que incluye la consulta', 'que incluye consulta', 'plan alimentario', 'plan de comidas', 'que evaluas'])) return 'consulta-nutricional'
+  if (includesAny(text, ['nutricion deportiva', 'deportista', 'deportiva', 'crossfit', 'rendimiento deportivo', 'rendimiento', 'entrenamiento', 'entrenando', 'gimnasio', 'corro', 'running', 'futbol', 'rugby'])) return 'nutricion-deportiva'
+  if (includesAny(text, ['antropometria', 'antropometria de 5 componentes', '5 componentes', 'composicion corporal', 'medicion corporal'])) return 'antropometria'
+  if (includesAny(text, ['neurologia', 'neurologico', 'neurologica', 'epilepsia', 'parkinson', 'alzheimer', 'esclerosis'])) return 'neurologia'
+  if (includesAny(text, ['valores', 'valor', 'precio', 'precios', 'cuanto cuesta', 'cuanto sale', 'cuanto vale', 'costo', 'aranceles'])) return 'valores'
+  if (includesAny(text, ['ubicacion', 'donde atendes', 'donde queda', 'donde estas', 'direccion', 'consultorio', 'como llegar', 'google maps', 'maps', 'mapa', 'clinica el castano'])) return 'ubicacion'
 
   if (includesAny(text, ['inbody', 'in body', 'bioimpedancia'])) return 'antropometria-vs-inbody'
   if (includesAny(text, ['antropometria me da plan', 'antropometria incluye plan', 'antropometria con plan', 'me das plan', 'incluye plan'])) return 'antropometria-plan'
@@ -890,6 +882,7 @@ function normalizeBotMessages(raw) {
     intents: {
       turnos: pickString(intents.turnos, DEFAULT_BOT_MESSAGES.intents.turnos),
       obrasSociales: pickString(intents.obrasSociales, DEFAULT_BOT_MESSAGES.intents.obrasSociales),
+      obraSocialConCobertura: pickString(intents.obraSocialConCobertura, DEFAULT_BOT_MESSAGES.intents.obraSocialConCobertura),
       obraSocialNoCubierta: pickString(intents.obraSocialNoCubierta, DEFAULT_BOT_MESSAGES.intents.obraSocialNoCubierta),
       consultaNutricional: pickString(intents.consultaNutricional, DEFAULT_BOT_MESSAGES.intents.consultaNutricional),
       nutricionDeportiva: pickString(intents.nutricionDeportiva, DEFAULT_BOT_MESSAGES.intents.nutricionDeportiva),
@@ -912,6 +905,7 @@ function normalizeBotMessages(raw) {
       generic: pickString(topicFollowups.generic, DEFAULT_BOT_MESSAGES.topicFollowups.generic),
       coordinandoTurno: pickString(topicFollowups.coordinandoTurno, DEFAULT_BOT_MESSAGES.topicFollowups.coordinandoTurno),
       bookingAfterCoverage: pickString(topicFollowups.bookingAfterCoverage, DEFAULT_BOT_MESSAGES.topicFollowups.bookingAfterCoverage),
+      insuranceCoverageConfirmed: pickString(topicFollowups.insuranceCoverageConfirmed, DEFAULT_BOT_MESSAGES.topicFollowups.insuranceCoverageConfirmed),
       comprobanteRecibido: pickString(topicFollowups.comprobanteRecibido, DEFAULT_BOT_MESSAGES.topicFollowups.comprobanteRecibido)
     },
     commands: {
@@ -1548,6 +1542,7 @@ function extractInsuranceCandidate(text) {
   }
 
   const words = normalizeIncomingText(text).split(' ').filter(Boolean)
+  if (words.length === 1) return words[0]
   if (words.length < 2) return ''
   return words[words.length - 1]
 }
@@ -1596,12 +1591,43 @@ function shouldHandleBookingFlow(conversation) {
   )
 }
 
-function looksLikeInsuranceFollowUp(text) {
-  return Boolean(
-    detectCoveredInsurance(text) ||
-    hasParticularCoverage(text) ||
-    includesAny(text, ['dni', 'afiliado', 'afiliada', 'token'])
+function getInsuranceCoverageMessageKey(text) {
+  if (detectCoveredInsurance(text)) return 'obraSocialConCobertura'
+  if (hasParticularCoverage(text) || extractInsuranceCandidate(text)) return 'obraSocialNoCubierta'
+  return ''
+}
+
+async function handleInsuranceCoverageFollowUp(sock, sender, text, name, conversation) {
+  if (!conversation) return false
+  if (!shouldTreatAsTopicMessage(text)) return false
+
+  if (conversation.currentTopic === 'obra-social-con-cobertura') {
+    await sendText(sock, sender, botMessages.topicFollowups.insuranceCoverageConfirmed, name, { includeGreeting: false })
+    return true
+  }
+
+  if (conversation.currentTopic === 'obra-social-no-cubierta') {
+    await sendText(sock, sender, botMessages.intents.obraSocialNoCubierta, name, { includeGreeting: false })
+    return true
+  }
+
+  if (conversation.currentTopic !== 'obras-sociales') return false
+
+  const coverageMessageKey = getInsuranceCoverageMessageKey(text)
+  const nextTopic = coverageMessageKey === 'obraSocialConCobertura'
+    ? 'obra-social-con-cobertura'
+    : coverageMessageKey === 'obraSocialNoCubierta'
+      ? 'obra-social-no-cubierta'
+      : 'obras-sociales'
+  await setConversationFlow(sender, { currentTopic: nextTopic, turnBookingStage: '' })
+  await sendText(
+    sock,
+    sender,
+    coverageMessageKey ? botMessages.intents[coverageMessageKey] : botMessages.intents.obrasSociales,
+    name,
+    { includeGreeting: false }
   )
+  return true
 }
 
 async function startBookingFlowFromTopic(sock, sender, text, name, conversation) {
@@ -1613,29 +1639,20 @@ async function startBookingFlowFromTopic(sock, sender, text, name, conversation)
     return false
   }
 
-  if (conversation.currentTopic === 'obras-sociales' && looksLikeInsuranceFollowUp(text)) {
-    await setConversationFlow(sender, {
-      turnBookingStage: 'awaiting-name-after-coverage',
-      paymentReceiptStatus: '',
-      offeredCalendarSlots: [],
-      selectedCalendarSlotStart: '',
-      selectedCalendarSlotEnd: '',
-      calendarEventId: ''
-    })
-    await sendText(sock, sender, botMessages.topicFollowups.bookingAfterCoverage, name, { includeGreeting: false })
-    return true
-  }
-
   if (conversation.currentTopic === 'obras-sociales') {
-    await setConversationFlow(sender, {
-      turnBookingStage: 'awaiting-name-after-coverage',
-      paymentReceiptStatus: '',
-      offeredCalendarSlots: [],
-      selectedCalendarSlotStart: '',
-      selectedCalendarSlotEnd: '',
-      calendarEventId: ''
-    })
-    await sendText(sock, sender, botMessages.topicFollowups.bookingAfterCoverage, name, { includeGreeting: false })
+    const coverageMessageKey = getInsuranceCoverageMessageKey(text)
+    if (!coverageMessageKey) {
+      await sendText(sock, sender, botMessages.intents.obrasSociales, name, { includeGreeting: false })
+      return true
+    }
+
+    await sendText(
+      sock,
+      sender,
+      botMessages.intents[coverageMessageKey],
+      name,
+      { includeGreeting: false }
+    )
     return true
   }
 
@@ -2489,6 +2506,10 @@ async function handleCommand(sock, sender, text, name) {
     } else if (await startBookingFlowFromTopic(sock, sender, text, name, conversation)) {
       return true
     }
+  }
+
+  if (await handleInsuranceCoverageFollowUp(sock, sender, text, name, conversation)) {
+    return true
   }
 
   const intent = detectIntent(text)

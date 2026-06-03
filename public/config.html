@@ -447,50 +447,15 @@
 
     <section class="section">
       <h2>Respuestas del menú principal</h2>
-      <p class="section-help">Estas son las nueve opciones que aparecen en el menú. Cada intención se dispara con el número de menú o por palabras clave equivalentes.</p>
+      <p class="section-help">Estas son las dos opciones que aparecen en el menú. Cada intención se dispara con el número de menú o por palabras clave equivalentes.</p>
       <div class="field">
-        <label for="intent-turnos">1️⃣ Turnos</label>
-        <p class="hint">Se dispara con <code>1</code>, <em>turno</em>, <em>sacar turno</em>, <em>quiero un turno</em>, <em>reservar turno</em>, <em>agendar</em>.</p>
-        <textarea id="intent-turnos" class="textarea" data-path="intents.turnos"></textarea>
-      </div>
-      <div class="field">
-        <label for="intent-obrasSociales">2️⃣ Obras sociales</label>
-        <p class="hint">Se dispara con <code>2</code>, <em>obra social</em>, <em>cobertura</em>, <em>prepaga</em>, <em>afiliado</em>.</p>
+        <label for="intent-obrasSociales">1️⃣ Consultar cobertura de obra social</label>
+        <p class="hint">Se dispara con <code>1</code>, <em>obra social</em>, <em>cobertura</em>, <em>prepaga</em>, <em>afiliado</em>.</p>
         <textarea id="intent-obrasSociales" class="textarea tall" data-path="intents.obrasSociales"></textarea>
       </div>
       <div class="field">
-        <label for="intent-consultaNutricional">3️⃣ Consulta nutricional</label>
-        <p class="hint">Se dispara con <code>3</code>, <em>consulta nutricional</em>, <em>plan alimentario</em>, <em>que incluye</em>.</p>
-        <textarea id="intent-consultaNutricional" class="textarea" data-path="intents.consultaNutricional"></textarea>
-      </div>
-      <div class="field">
-        <label for="intent-nutricionDeportiva">4️⃣ Nutrición deportiva</label>
-        <p class="hint">Se dispara con <code>4</code>, <em>deportista</em>, <em>crossfit</em>, <em>rendimiento</em>, <em>entrenamiento</em>.</p>
-        <textarea id="intent-nutricionDeportiva" class="textarea" data-path="intents.nutricionDeportiva"></textarea>
-      </div>
-      <div class="field">
-        <label for="intent-antropometria">5️⃣ Antropometría de 5 componentes</label>
-        <p class="hint">Se dispara con <code>5</code>, <em>antropometría</em>, <em>composición corporal</em>, <em>5 componentes</em>.</p>
-        <textarea id="intent-antropometria" class="textarea" data-path="intents.antropometria"></textarea>
-      </div>
-      <div class="field">
-        <label for="intent-neurologia">6️⃣ Neurología</label>
-        <p class="hint">Se dispara con <code>6</code>, <em>neurología</em>, <em>epilepsia</em>, <em>parkinson</em>, <em>alzheimer</em>.</p>
-        <textarea id="intent-neurologia" class="textarea" data-path="intents.neurologia"></textarea>
-      </div>
-      <div class="field">
-        <label for="intent-valores">7️⃣ Valores</label>
-        <p class="hint">Se dispara con <code>7</code>, <em>precio</em>, <em>valores</em>, <em>cuánto cuesta</em>, <em>costo</em>.</p>
-        <textarea id="intent-valores" class="textarea" data-path="intents.valores"></textarea>
-      </div>
-      <div class="field">
-        <label for="intent-ubicacion">8️⃣ Ubicación</label>
-        <p class="hint">Se dispara con <code>8</code>, <em>ubicación</em>, <em>dirección</em>, <em>dónde atendés</em>, <em>cómo llegar</em>.</p>
-        <textarea id="intent-ubicacion" class="textarea" data-path="intents.ubicacion"></textarea>
-      </div>
-      <div class="field">
-        <label for="intent-hablarConCelia">9️⃣ Hablar con Celia</label>
-        <p class="hint">Se dispara con <code>9</code>, <em>hablar con Celia</em>, <em>operador</em>, <em>humano</em>. La conversación queda marcada como esperando humano.</p>
+        <label for="intent-hablarConCelia">2️⃣ Hablar con Celia</label>
+        <p class="hint">Se dispara con <code>2</code>, <em>hablar con Celia</em>, <em>operador</em>, <em>humano</em>. La conversación queda marcada como esperando humano.</p>
         <textarea id="intent-hablarConCelia" class="textarea" data-path="intents.hablarConCelia"></textarea>
       </div>
     </section>
@@ -499,8 +464,13 @@
       <h2>Sub-respuestas (palabras clave específicas)</h2>
       <p class="section-help">Estas respuestas se disparan por palabras clave más específicas, no por número del menú. Sirven para responder consultas concretas dentro de un tema general.</p>
       <div class="field">
+        <label for="intent-obraSocialConCobertura">Obra social con cobertura</label>
+        <p class="hint">Se usa cuando el contacto envía una obra social que sí tiene cobertura.</p>
+        <textarea id="intent-obraSocialConCobertura" class="textarea" data-path="intents.obraSocialConCobertura"></textarea>
+      </div>
+      <div class="field">
         <label for="intent-obraSocialNoCubierta">Obra social no cubierta</label>
-        <p class="hint">Disponible como respuesta rápida desde el operador. No se dispara automáticamente; el operador la elige cuando el contacto menciona una obra social que no figura en el listado.</p>
+        <p class="hint">Se usa cuando el contacto envía una obra social sin cobertura.</p>
         <textarea id="intent-obraSocialNoCubierta" class="textarea" data-path="intents.obraSocialNoCubierta"></textarea>
       </div>
       <div class="field">

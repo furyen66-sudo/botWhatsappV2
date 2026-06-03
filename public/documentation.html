@@ -697,7 +697,7 @@
         <li>Si la conversación tenía un tema no-coordinador activo, envía un acuse genérico para que el operador retome.</li>
         <li>Si todo lo anterior falla y el texto es un saludo, vuelve a mostrar el menú; si no, responde con el mensaje por defecto definido en <code>DEFAULT_REPLY</code>.</li>
       </ol>
-      <p>El menú principal tiene nueve opciones numeradas con emojis (1️⃣ Turnos, 2️⃣ Obras sociales, 3️⃣ Consulta nutricional, 4️⃣ Nutrición deportiva, 5️⃣ Antropometría de 5 componentes, 6️⃣ Neurología, 7️⃣ Valores, 8️⃣ Ubicación, 9️⃣ Hablar con Celia). Las palabras clave para auto-detección incluyen: <em>turno</em>, <em>obra social</em>, <em>precio</em>, <em>valores</em>, <em>antropometría</em>, <em>deportista</em>, <em>crossfit</em>, <em>rendimiento</em>, <em>diabetes</em>, <em>neurología</em>, <em>dirección</em>, <em>ubicación</em>, <em>consulta</em>, <em>plan alimentario</em>, entre otras.</p>
+      <p>El menú principal muestra el enlace directo de reservas y dos opciones numeradas con emojis (1️⃣ Consultar cobertura de obra social y 2️⃣ Hablar con Celia). Las palabras clave para auto-detección siguen contemplando consultas frecuentes como <em>turno</em>, <em>obra social</em>, <em>precio</em>, <em>valores</em>, <em>antropometría</em>, <em>deportista</em>, <em>crossfit</em>, <em>rendimiento</em>, <em>diabetes</em>, <em>neurología</em>, <em>dirección</em>, <em>ubicación</em>, <em>consulta</em> y <em>plan alimentario</em>, entre otras.</p>
     </section>
 
     <section id="comandos" class="section">
@@ -763,13 +763,13 @@
       <p>Accesible desde el botón <em>Configuración</em> de la barra superior. Permite editar todos los textos que el bot envía automáticamente y gestionar las listas auxiliares del sistema sin tocar el código.</p>
       <h3>Mensaje principal</h3>
       <ul>
-        <li><strong>Mensaje del menú:</strong> texto que recibe el contacto la primera vez que escribe, o cuando dice <em>hola</em> o <em>menu</em>. Incluye las nueve opciones numeradas del consultorio.</li>
+        <li><strong>Mensaje del menú:</strong> texto que recibe el contacto la primera vez que escribe, o cuando dice <em>hola</em> o <em>menu</em>. Incluye el enlace de reservas y las dos opciones activas del consultorio.</li>
         <li><strong>Mensaje por defecto:</strong> respuesta de fallback cuando el bot no reconoce ninguna intención.</li>
       </ul>
       <h3>Respuestas del menú principal</h3>
-      <p>Nueve textos editables, uno por cada opción del menú: <em>Turnos</em>, <em>Obras sociales</em>, <em>Consulta nutricional</em>, <em>Nutrición deportiva</em>, <em>Antropometría de 5 componentes</em>, <em>Neurología</em>, <em>Valores</em>, <em>Ubicación</em> y <em>Hablar con Celia</em>. Cada uno se dispara por número del menú o por palabras clave asociadas (la sección del panel muestra los disparadores debajo de cada campo).</p>
+      <p>Dos textos editables, uno por cada opción visible del menú: <em>Consultar cobertura de obra social</em> y <em>Hablar con Celia</em>. Cada uno se dispara por número del menú o por palabras clave asociadas (la sección del panel muestra los disparadores debajo de cada campo).</p>
       <h3>Sub-respuestas por palabras clave</h3>
-      <p>Siete respuestas adicionales que se disparan por palabras clave específicas, no por número de menú: <em>Obra social no cubierta</em> (uso manual desde respuestas rápidas), <em>Antropometría vs InBody</em>, <em>¿La antropometría incluye plan?</em>, <em>Reserva del turno (seña y alias)</em>, <em>Política de inasistencia</em>, <em>Diabetes</em> y <em>Descenso de peso</em>.</p>
+      <p>Respuestas adicionales que se disparan por palabras clave específicas, no por número de menú: <em>Obra social con cobertura</em>, <em>Obra social no cubierta</em>, <em>Antropometría vs InBody</em>, <em>¿La antropometría incluye plan?</em>, <em>Reserva del turno (seña y alias)</em>, <em>Política de inasistencia</em>, <em>Diabetes</em> y <em>Descenso de peso</em>.</p>
       <h3>Derivación por conflicto</h3>
       <p>Texto único que el bot envía cuando el detector de conflicto encuentra un mensaje agresivo, una amenaza o lenguaje inapropiado. La conversación queda marcada como esperando humano y con la etiqueta correspondiente.</p>
       <h3>Seguimientos por tema en curso</h3>
