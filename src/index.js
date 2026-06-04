@@ -52,6 +52,10 @@ const DOCUMENTATION_PAGE_FILE = new URL('../public/documentation.html', import.m
 const CONFIG_PAGE_FILE = new URL('../public/config.html', import.meta.url)
 const CONVERSATION_STATUSES = new Set(['pendiente', 'respondida', 'urgente'])
 const PAYMENT_RECEIPT_STATUSES = new Set(['', 'requested', 'received', 'verified'])
+const MESSAGE_SOURCES = new Set(['contact', 'bot', 'human'])
+const HUMAN_PAUSE_MS = 24 * 60 * 60 * 1000
+const AUTO_REPLY_DEDUP_MS = 2 * 60 * 1000
+const OWN_MESSAGE_ID_TTL_MS = 10 * 60 * 1000
 const SCHEDULING_SELECTION_TEXTS = new Set(['1', '2', '3'])
 const TURN_BOOKING_STAGES = new Set(['', 'awaiting-insurance', 'awaiting-name-after-coverage', 'awaiting-objective'])
 const COVERED_INSURANCE_NAMES = [
@@ -478,6 +482,7 @@ let adminServerStarted = false
 let persistConversationsPromise = Promise.resolve()
 let conflictRules = DEFAULT_CONFLICT_RULES
 let botMessages = DEFAULT_BOT_MESSAGES
+const ownMessageIds = new Map()
 let linkState = {
   connected: false,
   status: 'starting',
@@ -554,6 +559,46 @@ function getAttachmentSummary(messageType, fileName) {
   }
 }
 
+function getMessageMetadata(message) {
+  if (message?.imageMessage) {
+    return {
+      messageType: 'image',
+      mimeType: message.imageMessage.mimetype || '',
+      fileName: message.imageMessage.fileName || ''
+    }
+  }
+
+  if (message?.audioMessage) {
+    return {
+      messageType: 'audio',
+      mimeType: message.audioMessage.mimetype || '',
+      fileName: message.audioMessage.fileName || ''
+    }
+  }
+
+  if (message?.videoMessage) {
+    return {
+      messageType: 'video',
+      mimeType: message.videoMessage.mimetype || '',
+      fileName: message.videoMessage.fileName || ''
+    }
+  }
+
+  if (message?.documentMessage) {
+    return {
+      messageType: 'document',
+      mimeType: message.documentMessage.mimetype || '',
+      fileName: message.documentMessage.fileName || ''
+    }
+  }
+
+  return {
+    messageType: 'text',
+    mimeType: '',
+    fileName: ''
+  }
+}
+
 function sanitizeUploadFileName(fileName = 'archivo') {
   const baseName = basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_') || 'archivo'
   return `${randomUUID()}-${baseName}`
@@ -613,6 +658,68 @@ function normalizeTurnBookingStage(stage) {
   return TURN_BOOKING_STAGES.has(stage) ? stage : ''
 }
 
+function normalizeMessageSource(source, fallbackDirection = 'in') {
+  if (MESSAGE_SOURCES.has(source)) return source
+  return fallbackDirection === 'out' ? 'bot' : 'contact'
+}
+
+function normalizeHumanPauseUntil(value) {
+  if (typeof value !== 'string' || !value) return ''
+  return Number.isNaN(Date.parse(value)) ? '' : value
+}
+
+function getHumanPauseUntilDate(baseDate = new Date()) {
+  return new Date(baseDate.getTime() + HUMAN_PAUSE_MS).toISOString()
+}
+
+function isHumanPauseActive(conversation, now = Date.now()) {
+  if (!conversation?.humanPauseEnabled) return false
+  if (!conversation.humanPauseUntil) return false
+  const pauseUntil = Date.parse(conversation.humanPauseUntil)
+  return Number.isFinite(pauseUntil) && pauseUntil > now
+}
+
+function hasRecentBotText(conversation, text, windowMs = AUTO_REPLY_DEDUP_MS, now = Date.now()) {
+  if (!conversation || !text) return false
+
+  for (let index = conversation.messages.length - 1; index >= 0; index -= 1) {
+    const message = conversation.messages[index]
+    if (message?.source !== 'bot' || message?.direction !== 'out') continue
+
+    const sentAt = Date.parse(message.timestamp || '')
+    if (!Number.isFinite(sentAt)) return false
+    if (now - sentAt > windowMs) return false
+
+    return message.text === text
+  }
+
+  return false
+}
+
+function isSocketActive(sock) {
+  return Boolean(sock) && activeSocket === sock
+}
+
+function pruneOwnMessageIds(now = Date.now()) {
+  for (const [messageId, timestamp] of ownMessageIds.entries()) {
+    if (now - timestamp > OWN_MESSAGE_ID_TTL_MS) {
+      ownMessageIds.delete(messageId)
+    }
+  }
+}
+
+function rememberOwnMessageId(messageId) {
+  if (!messageId) return
+  pruneOwnMessageIds()
+  ownMessageIds.set(messageId, Date.now())
+}
+
+function isOwnAppMessage(messageId) {
+  if (!messageId) return false
+  pruneOwnMessageIds()
+  return ownMessageIds.has(messageId)
+}
+
 function normalizeCalendarSlot(slot, fallbackIndex = 0) {
   if (!slot || typeof slot !== 'object') return null
   const start = typeof slot.start === 'string' ? slot.start : ''
@@ -655,6 +762,8 @@ function createConversationRecord(jid, now = getIsoTimestamp()) {
     selectedCalendarSlotStart: '',
     selectedCalendarSlotEnd: '',
     calendarEventId: '',
+    humanPauseEnabled: true,
+    humanPauseUntil: '',
     shouldUseNameGreeting: true,
     messages: []
   }
@@ -798,9 +907,22 @@ async function ensureConversationStore() {
         selectedCalendarSlotStart: typeof item.selectedCalendarSlotStart === 'string' ? item.selectedCalendarSlotStart : '',
         selectedCalendarSlotEnd: typeof item.selectedCalendarSlotEnd === 'string' ? item.selectedCalendarSlotEnd : '',
         calendarEventId: typeof item.calendarEventId === 'string' ? item.calendarEventId : '',
+        humanPauseEnabled: item.humanPauseEnabled !== false,
+        humanPauseUntil: normalizeHumanPauseUntil(item.humanPauseUntil),
         shouldUseNameGreeting: item.shouldUseNameGreeting !== false,
         messageCount: Array.isArray(item.messages) ? item.messages.length : 0,
-        messages: Array.isArray(item.messages) ? item.messages : []
+        messages: Array.isArray(item.messages)
+          ? item.messages.map((message) => ({
+            direction: message?.direction === 'out' ? 'out' : 'in',
+            source: normalizeMessageSource(message?.source, message?.direction),
+            text: typeof message?.text === 'string' ? message.text : '',
+            timestamp: typeof message?.timestamp === 'string' ? message.timestamp : now,
+            messageType: typeof message?.messageType === 'string' ? message.messageType : 'text',
+            mediaUrl: typeof message?.mediaUrl === 'string' ? message.mediaUrl : '',
+            mimeType: typeof message?.mimeType === 'string' ? message.mimeType : '',
+            fileName: typeof message?.fileName === 'string' ? message.fileName : ''
+          }))
+          : []
       })
     }
   } catch (error) {
@@ -963,7 +1085,7 @@ function persistConversations() {
   return persistConversationsPromise
 }
 
-async function recordConversationMessage({ jid, name, text = '', direction, messageType = 'text', mediaUrl = '', mimeType = '', fileName = '' }) {
+async function recordConversationMessage({ jid, name, text = '', direction, source, messageType = 'text', mediaUrl = '', mimeType = '', fileName = '' }) {
   if (!isConversationChat(jid) || (!text && !mediaUrl && !fileName)) return
 
   const now = getIsoTimestamp()
@@ -990,6 +1112,7 @@ async function recordConversationMessage({ jid, name, text = '', direction, mess
 
   current.messages.push({
     direction,
+    source: normalizeMessageSource(source, direction),
     text,
     timestamp: now,
     messageType,
@@ -1028,7 +1151,10 @@ function createConversationSummary(conversation) {
     offeredCalendarSlots: normalizeCalendarSlots(conversation.offeredCalendarSlots),
     selectedCalendarSlotStart: conversation.selectedCalendarSlotStart || '',
     selectedCalendarSlotEnd: conversation.selectedCalendarSlotEnd || '',
-    calendarEventId: conversation.calendarEventId || ''
+    calendarEventId: conversation.calendarEventId || '',
+    humanPauseEnabled: conversation.humanPauseEnabled !== false,
+    humanPauseUntil: conversation.humanPauseUntil || '',
+    humanPauseActive: isHumanPauseActive(conversation)
   }
 }
 
@@ -1118,7 +1244,8 @@ async function sendUploadedMediaReply(jid, { fileBuffer, fileName, mimeType, cap
     payload.fileName = fileName
   }
 
-  await activeSocket.sendMessage(jid, payload)
+  const sentMessage = await activeSocket.sendMessage(jid, payload)
+  rememberOwnMessageId(sentMessage?.key?.id)
 
   const conversation = getConversation(jid)
   await recordConversationMessage({
@@ -1126,6 +1253,7 @@ async function sendUploadedMediaReply(jid, { fileBuffer, fileName, mimeType, cap
     name: conversation?.name || '',
     text: caption.trim(),
     direction: 'out',
+    source: 'human',
     messageType,
     mediaUrl,
     mimeType,
@@ -1138,6 +1266,7 @@ async function sendUploadedMediaReply(jid, { fileBuffer, fileName, mimeType, cap
     waitingForHuman: false,
     escalationReason: '',
     conflictLevel: '',
+    humanPauseUntil: conversation?.humanPauseEnabled === false ? '' : getHumanPauseUntilDate(),
     shouldUseNameGreeting: false
   })
 
@@ -1207,6 +1336,17 @@ async function updateConversationMetadata(jid, updates) {
     current.calendarEventId = updates.calendarEventId.trim()
   }
 
+  if (typeof updates.humanPauseEnabled === 'boolean') {
+    current.humanPauseEnabled = updates.humanPauseEnabled
+    if (!updates.humanPauseEnabled) {
+      current.humanPauseUntil = ''
+    }
+  }
+
+  if (typeof updates.humanPauseUntil === 'string') {
+    current.humanPauseUntil = normalizeHumanPauseUntil(updates.humanPauseUntil)
+  }
+
   if (typeof updates.shouldUseNameGreeting === 'boolean') {
     current.shouldUseNameGreeting = updates.shouldUseNameGreeting
   }
@@ -1248,12 +1388,14 @@ async function sendManualReply(jid, text) {
     throw error
   }
 
-  await activeSocket.sendMessage(jid, { text: finalText })
+  const sentMessage = await activeSocket.sendMessage(jid, { text: finalText })
+  rememberOwnMessageId(sentMessage?.key?.id)
   await recordConversationMessage({
     jid,
     name: conversation?.name || '',
     text: finalText,
-    direction: 'out'
+    direction: 'out',
+    source: 'human'
   })
 
   await updateConversationMetadata(jid, {
@@ -1262,6 +1404,7 @@ async function sendManualReply(jid, text) {
     waitingForHuman: false,
     escalationReason: '',
     conflictLevel: '',
+    humanPauseUntil: conversation?.humanPauseEnabled === false ? '' : getHumanPauseUntilDate(),
     shouldUseNameGreeting: false
   })
 
@@ -2321,10 +2464,13 @@ async function setConversationFlow(jid, updates) {
 }
 
 async function sendText(sock, sender, text, name = '', options = {}) {
+  if (!isSocketActive(sock)) return
+
   const includeGreeting = options.includeGreeting ?? shouldIncludeNameGreeting(sender)
   const finalText = personalizeText(name, text, { includeGreeting })
-  await sock.sendMessage(sender, { text: finalText })
-  await recordConversationMessage({ jid: sender, name, text: finalText, direction: 'out' })
+  const sentMessage = await sock.sendMessage(sender, { text: finalText })
+  rememberOwnMessageId(sentMessage?.key?.id)
+  await recordConversationMessage({ jid: sender, name, text: finalText, direction: 'out', source: 'bot' })
 
   if (includeGreeting) {
     await setConversationFlow(sender, { shouldUseNameGreeting: false })
@@ -2332,9 +2478,15 @@ async function sendText(sock, sender, text, name = '', options = {}) {
 }
 
 async function sendMenu(sock, sender, name = '') {
+  if (!isSocketActive(sock)) return
+
   const finalText = getMenuText(name)
-  await sock.sendMessage(sender, { text: finalText })
-  await recordConversationMessage({ jid: sender, name, text: finalText, direction: 'out' })
+  const conversation = getConversation(sender)
+  if (hasRecentBotText(conversation, finalText)) return
+
+  const sentMessage = await sock.sendMessage(sender, { text: finalText })
+  rememberOwnMessageId(sentMessage?.key?.id)
+  await recordConversationMessage({ jid: sender, name, text: finalText, direction: 'out', source: 'bot' })
   await setConversationFlow(sender, {
     currentTopic: '',
     waitingForHuman: false,
@@ -2354,6 +2506,8 @@ async function sendMenu(sock, sender, name = '') {
 async function sendHumanHandoff(sock, sender, name = '', escalationReason = 'Solicitud de atencion humana', conflictLevel = '') {
   await sendText(sock, sender, botMessages.humanHandoff, name)
 
+  const conversation = getConversation(sender)
+
   await setConversationFlow(sender, {
     currentTopic: 'human',
     waitingForHuman: true,
@@ -2367,6 +2521,7 @@ async function sendHumanHandoff(sock, sender, name = '', escalationReason = 'Sol
     escalationReason,
     conflictLevel,
     turnBookingStage: '',
+    humanPauseUntil: conversation?.humanPauseEnabled === false ? '' : getHumanPauseUntilDate(),
     shouldUseNameGreeting: false
   })
 }
@@ -2565,13 +2720,15 @@ async function handleCommand(sock, sender, text, name) {
     const broadcastText = applyTemplate(botMessages.commands.broadcastMessage, { botName: BOT_NAME })
 
     for (const jid of BROADCAST_CONTACTS) {
-      await sock.sendMessage(jid, { text: broadcastText })
+      const sentMessage = await sock.sendMessage(jid, { text: broadcastText })
+      rememberOwnMessageId(sentMessage?.key?.id)
 
       await recordConversationMessage({
         jid,
         name: '',
         text: broadcastText,
-        direction: 'out'
+        direction: 'out',
+        source: 'bot'
       })
     }
 
@@ -2590,6 +2747,7 @@ async function handleCommand(sock, sender, text, name) {
       escalationReason: 'Solicitud de hablar con Celia',
       tags: nextTags,
       turnBookingStage: '',
+      humanPauseUntil: conversation?.humanPauseEnabled === false ? '' : getHumanPauseUntilDate(),
       shouldUseNameGreeting: false
     })
     return true
@@ -2734,68 +2892,119 @@ async function startBot() {
   })
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return
+    try {
+      if (type !== 'notify') return
 
-    const msg = messages[0]
-    if (!msg?.message || msg.key.fromMe) return
+      const msg = messages[0]
+      if (!msg?.message) return
 
-    const sender = msg.key.remoteJid
-    if (!sender || !isConversationChat(sender)) return
+      const sender = msg.key.remoteJid
+      if (!sender || !isConversationChat(sender)) return
 
-    const name = getContactName(msg)
-    const rawText = getTextFromMessage(msg.message)
-    const text = normalizeIncomingText(rawText)
+      if (msg.key.fromMe) {
+        if (isOwnAppMessage(msg.key.id)) return
 
-    const incomingMedia = await downloadIncomingMedia(msg).catch((error) => {
-      console.error('No se pudo descargar el archivo entrante:', error)
-      return null
-    })
+        const name = getContactName(msg)
+        const rawText = getTextFromMessage(msg.message)
+        const metadata = getMessageMetadata(msg.message)
+        const conversation = getConversation(sender)
 
-    if (incomingMedia) {
-      console.log(`Archivo recibido de ${sender}: ${incomingMedia.fileName}`)
-      await recordConversationMessage({
-        jid: sender,
-        name,
-        text: rawText,
-        direction: 'in',
-        messageType: incomingMedia.messageType,
-        mediaUrl: incomingMedia.mediaUrl,
-        mimeType: incomingMedia.mimeType,
-        fileName: incomingMedia.fileName
+        await recordConversationMessage({
+          jid: sender,
+          name,
+          text: rawText,
+          direction: 'out',
+          source: 'human',
+          messageType: metadata.messageType,
+          mimeType: metadata.mimeType,
+          fileName: metadata.fileName
+        })
+
+        await updateConversationMetadata(sender, {
+          status: 'respondida',
+          unreadCount: 0,
+          waitingForHuman: false,
+          escalationReason: '',
+          conflictLevel: '',
+          humanPauseUntil: conversation?.humanPauseEnabled === false ? '' : getHumanPauseUntilDate(),
+          shouldUseNameGreeting: false
+        })
+        return
+      }
+
+      const name = getContactName(msg)
+      const rawText = getTextFromMessage(msg.message)
+      const text = normalizeIncomingText(rawText)
+
+      const incomingMedia = await downloadIncomingMedia(msg).catch((error) => {
+        console.error('No se pudo descargar el archivo entrante:', error)
+        return null
       })
 
-      const isReceiptMedia = incomingMedia.messageType === 'image' || (incomingMedia.messageType === 'document' && incomingMedia.mimeType.startsWith('application/pdf'))
-      if (isReceiptMedia) {
-        const conversation = getConversation(sender)
-        if (conversation && conversation.paymentReceiptStatus === 'requested') {
-          await applyConversationMetadataUpdate(sender, { paymentReceiptStatus: 'received' })
-          await sendText(sock, sender, botMessages.topicFollowups.comprobanteRecibido, name, { includeGreeting: false })
+      if (incomingMedia) {
+        console.log(`Archivo recibido de ${sender}: ${incomingMedia.fileName}`)
+        await recordConversationMessage({
+          jid: sender,
+          name,
+          text: rawText,
+          direction: 'in',
+          source: 'contact',
+          messageType: incomingMedia.messageType,
+          mediaUrl: incomingMedia.mediaUrl,
+          mimeType: incomingMedia.mimeType,
+          fileName: incomingMedia.fileName
+        })
+
+        const isReceiptMedia = incomingMedia.messageType === 'image' || (incomingMedia.messageType === 'document' && incomingMedia.mimeType.startsWith('application/pdf'))
+        if (isReceiptMedia) {
+          const conversation = getConversation(sender)
+          if (conversation && conversation.paymentReceiptStatus === 'requested') {
+            await applyConversationMetadataUpdate(sender, { paymentReceiptStatus: 'received' })
+            if (!isHumanPauseActive(conversation)) {
+              await sendText(sock, sender, botMessages.topicFollowups.comprobanteRecibido, name, { includeGreeting: false })
+            }
+          }
         }
+      } else if (text) {
+        console.log(`Mensaje recibido de ${sender}: ${rawText}`)
+        await recordConversationMessage({ jid: sender, name, text: rawText, direction: 'in', source: 'contact' })
+      } else {
+        return
       }
-    } else if (text) {
-      console.log(`Mensaje recibido de ${sender}: ${rawText}`)
-      await recordConversationMessage({ jid: sender, name, text: rawText, direction: 'in' })
-    } else {
-      return
-    }
 
-    if (!greetedContacts.has(sender)) {
+      const conversation = getConversation(sender)
+      if (isHumanPauseActive(conversation)) {
+        greetedContacts.add(sender)
+        return
+      }
+
+      const isFirstInboundMessage = conversation?.messageCount === 1
+
       greetedContacts.add(sender)
-      await sendMenu(sock, sender, name)
-      return
+
+      if (!text) return
+
+      const wasHandled = await handleCommand(sock, sender, text, name)
+      if (wasHandled) return
+
+      if (isFirstInboundMessage) {
+        await sendMenu(sock, sender, name)
+        return
+      }
+
+      if (isGreeting(text)) {
+        await sendMenu(sock, sender, name)
+        return
+      }
+
+      if (hasRecentBotText(conversation, botMessages.defaultReply)) {
+        return
+      }
+
+      await sendText(sock, sender, botMessages.defaultReply, name)
+    } catch (error) {
+      console.error('Error procesando mensaje entrante:', error)
     }
-
-    if (!text) return
-
-    const wasHandled = await handleCommand(sock, sender, text, name)
-    if (wasHandled) return
-
-    if (isGreeting(text)) {
-      await sendMenu(sock, sender, name)
-      return
-    }
-
-    await sendText(sock, sender, botMessages.defaultReply, name)
   })
 }
 

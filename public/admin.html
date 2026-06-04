@@ -436,6 +436,7 @@
     .conflict-amenaza { background: #f5c3bc; }
     .unread-badge { background: #d9c3ff; }
     .tag-chip { background: #d3e5ff; }
+    .pause-badge { background: #bfe3c1; }
 
     body[data-theme="dark"] .status-pendiente,
     body[data-theme="dark"] .status-respondida,
@@ -486,6 +487,19 @@
       border: 1px solid var(--line);
       display: grid;
       gap: 12px;
+    }
+
+    .toggle-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+    }
+
+    .toggle-row input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
     }
 
     .modal[hidden] {
@@ -779,6 +793,11 @@
           <option value="respondida">Respondida</option>
           <option value="urgente">Urgente</option>
         </select>
+        <select id="humanPauseFilter" class="select">
+          <option value="">Todas las pausas</option>
+          <option value="active">Pausa activa</option>
+          <option value="inactive">Sin pausa activa</option>
+        </select>
         <button id="refresh" class="button secondary" type="button">Actualizar</button>
         <button id="clearFilters" class="button secondary" type="button" aria-label="Limpiar filtros" title="Limpiar filtros">🗑</button>
       </div>
@@ -797,6 +816,7 @@
         <div class="modal-tools">
           <button id="confirmTurnButton" class="button" type="button">Confirmar turno y cerrar</button>
           <button id="printConversation" class="button secondary" type="button">Exportar PDF</button>
+          <button id="toggleBotPause" class="button secondary" type="button">Pausar bot</button>
           <button id="deleteConversation" class="button danger" type="button">Eliminar conversación</button>
           <button id="closeModal" class="button secondary" type="button">Cerrar</button>
         </div>
@@ -819,6 +839,7 @@
         <div class="summary-card"><div class="summary-label">Tiempo sin responder</div><div id="modalWaitingTime" class="summary-value"></div></div>
         <div class="summary-card"><div class="summary-label">Motivo de derivación</div><div id="modalEscalationReason" class="summary-value"></div></div>
         <div class="summary-card"><div class="summary-label">Nivel de conflicto</div><div id="modalConflictLevel" class="summary-value"></div></div>
+        <div class="summary-card"><div class="summary-label">Pausa del bot</div><div id="modalHumanPauseStatus" class="summary-value"></div></div>
       </div>
 
       <h3 class="section-title">Agenda del turno</h3>
@@ -848,6 +869,10 @@
           <button id="markRead" class="button secondary" type="button">Marcar leída</button>
           <button id="saveMetadata" class="button" type="button">Guardar cambios</button>
         </div>
+        <label class="toggle-row" for="modalHumanPauseEnabled">
+          <input id="modalHumanPauseEnabled" type="checkbox">
+          Activar pausa de bot por 24 h después de respuesta humana
+        </label>
         <input id="modalTags" class="input" type="text" placeholder="Etiquetas separadas por coma. Ej: turno, online, primera vez">
         </div>
       </div>
@@ -882,6 +907,7 @@
     const fromDateEl = document.getElementById('fromDate')
     const toDateEl = document.getElementById('toDate')
     const statusFilterEl = document.getElementById('statusFilter')
+    const humanPauseFilterEl = document.getElementById('humanPauseFilter')
     const refreshEl = document.getElementById('refresh')
     const clearFiltersEl = document.getElementById('clearFilters')
     const themeToggleEl = document.getElementById('themeToggle')
@@ -893,6 +919,7 @@
     const detailsPanelEl = document.getElementById('detailsPanel')
     const replyPanelEl = document.getElementById('replyPanel')
     const printConversationEl = document.getElementById('printConversation')
+    const toggleBotPauseEl = document.getElementById('toggleBotPause')
     const deleteConversationEl = document.getElementById('deleteConversation')
     const modalTitleEl = document.getElementById('modalTitle')
     const modalMetaEl = document.getElementById('modalMeta')
@@ -904,10 +931,12 @@
     const modalWaitingTimeEl = document.getElementById('modalWaitingTime')
     const modalEscalationReasonEl = document.getElementById('modalEscalationReason')
     const modalConflictLevelEl = document.getElementById('modalConflictLevel')
+    const modalHumanPauseStatusEl = document.getElementById('modalHumanPauseStatus')
     const modalReceiptBadgeEl = document.getElementById('modalReceiptBadge')
     const modalSelectedSlotEl = document.getElementById('modalSelectedSlot')
     const modalCalendarEventEl = document.getElementById('modalCalendarEvent')
     const modalReceiptStatusEl = document.getElementById('modalReceiptStatus')
+    const modalHumanPauseEnabledEl = document.getElementById('modalHumanPauseEnabled')
     const loadCalendarEl = document.getElementById('loadCalendar')
     const calendarMetaEl = document.getElementById('calendarMeta')
     const calendarAvailabilityEl = document.getElementById('calendarAvailability')
@@ -927,6 +956,7 @@
     let quickReplies = []
     let previousConversationSnapshot = new Map()
     let audioContext
+    const HUMAN_PAUSE_MS = 24 * 60 * 60 * 1000
 
     const storedTheme = localStorage.getItem('admin-theme') || 'light'
     document.body.dataset.theme = storedTheme
@@ -1002,6 +1032,33 @@
     function getReceiptBadge(status) {
       if (!status || !RECEIPT_LABELS[status]) return ''
       return `<span class="receipt-badge receipt-${status}">${RECEIPT_LABELS[status]}</span>`
+    }
+
+    function getMessageSourceLabel(message) {
+      if (message.source === 'human') return 'Humano'
+      if (message.source === 'bot') return 'Bot'
+      return 'Contacto'
+    }
+
+    function isHumanPauseActive(conversation) {
+      if (conversation.humanPauseEnabled === false) return false
+      if (!conversation.humanPauseUntil) return false
+      return new Date(conversation.humanPauseUntil).getTime() > Date.now()
+    }
+
+    function getHumanPauseStatus(conversation) {
+      if (conversation.humanPauseEnabled === false) return 'Desactivada'
+      if (!conversation.humanPauseUntil) return 'Lista para usarse'
+      if (!isHumanPauseActive(conversation)) return 'Vencida'
+      return `Activa hasta ${formatDate(conversation.humanPauseUntil)}`
+    }
+
+    function getToggleBotPauseLabel(conversation) {
+      return isHumanPauseActive(conversation) ? 'Reanudar bot' : 'Pausar bot'
+    }
+
+    function getHumanPauseUntilFromNow() {
+      return new Date(Date.now() + HUMAN_PAUSE_MS).toISOString()
     }
 
     function getTags(tags) {
@@ -1107,6 +1164,7 @@
               ${getStatusBadge(conversation.status)}
               ${getReceiptBadge(conversation.paymentReceiptStatus)}
               ${conversation.conflictLevel ? getConflictBadge(conversation.conflictLevel) : ''}
+              ${isHumanPauseActive(conversation) ? '<span class="pill pause-badge">Bot pausado</span>' : ''}
               ${conversation.unreadCount > 0 ? `<span class="unread-badge">${conversation.unreadCount} no leído(s)</span>` : ''}
               <span class="pill">${conversation.messageCount} mensaje(s)</span>
             </div>
@@ -1167,7 +1225,7 @@
       chatThreadEl.innerHTML = messages.map((message) => `
         <article class="chat-bubble ${message.direction === 'out' ? 'out' : 'in'}">
           ${renderMessageBody(message)}
-          <div class="chat-meta">${message.direction === 'out' ? 'Bot/Admin' : 'Contacto'} · ${escapeHtml(formatDate(message.timestamp))}</div>
+          <div class="chat-meta">${escapeHtml(getMessageSourceLabel(message))} · ${escapeHtml(formatDate(message.timestamp))}</div>
         </article>
       `).join('')
       chatThreadEl.scrollTop = chatThreadEl.scrollHeight
@@ -1179,6 +1237,7 @@
       fromDateEl.value = ''
       toDateEl.value = ''
       statusFilterEl.value = ''
+      humanPauseFilterEl.value = ''
       renderList(getFilteredConversations())
     }
 
@@ -1188,15 +1247,20 @@
       const fromDate = fromDateEl.value
       const toDate = toDateEl.value
       const statusFilter = statusFilterEl.value
+      const humanPauseFilter = humanPauseFilterEl.value
 
       return conversations.filter((conversation) => {
         const haystack = [conversation.name || '', conversation.jid || '', conversation.lastMessageText || ''].join(' ').toLowerCase()
         const matchesQuery = !query || haystack.includes(query)
         const matchesStatus = !statusFilter || conversation.status === statusFilter
+        const hasActivePause = isHumanPauseActive(conversation)
+        const matchesHumanPause = !humanPauseFilter
+          || (humanPauseFilter === 'active' && hasActivePause)
+          || (humanPauseFilter === 'inactive' && !hasActivePause)
         const matchesTag = !tagQuery || conversation.tags.some((tag) => tag.toLowerCase().includes(tagQuery))
         const matchesFrom = !fromDate || (conversation.lastMessageAt && conversation.lastMessageAt >= `${fromDate}T00:00:00.000Z`)
         const matchesTo = !toDate || (conversation.lastMessageAt && conversation.lastMessageAt <= `${toDate}T23:59:59.999Z`)
-        return matchesQuery && matchesStatus && matchesTag && matchesFrom && matchesTo
+        return matchesQuery && matchesStatus && matchesHumanPause && matchesTag && matchesFrom && matchesTo
       })
     }
 
@@ -1293,10 +1357,13 @@
       modalWaitingTimeEl.textContent = isWaitingForReply(conversation) ? `${formatRelativeTime(conversation.lastIncomingAt)} desde el último mensaje del contacto` : 'No hay espera activa'
       modalEscalationReasonEl.textContent = conversation.escalationReason || 'Sin derivación activa'
       modalConflictLevelEl.innerHTML = getConflictBadge(conversation.conflictLevel)
+      modalHumanPauseStatusEl.textContent = getHumanPauseStatus(conversation)
+      toggleBotPauseEl.textContent = getToggleBotPauseLabel(conversation)
       modalReceiptBadgeEl.innerHTML = getReceiptBadge(conversation.paymentReceiptStatus) || '<span class="meta">Sin comprobante</span>'
       modalSelectedSlotEl.textContent = formatSelectedSlot(conversation.selectedCalendarSlotStart, conversation.selectedCalendarSlotEnd)
       modalCalendarEventEl.textContent = conversation.calendarEventId ? 'Evento agendado' : 'Sin evento agendado'
       modalReceiptStatusEl.value = conversation.paymentReceiptStatus || ''
+      modalHumanPauseEnabledEl.checked = conversation.humanPauseEnabled !== false
       calendarAvailabilityEl.innerHTML = ''
       calendarMetaEl.textContent = ''
       modalTagsEl.value = (conversation.tags || []).join(', ')
@@ -1307,7 +1374,7 @@
       messagesEl.innerHTML = conversation.messages.map((message) => `
         <article class="message ${message.direction === 'out' ? 'out' : 'in'}">
           <div class="message-head">
-            <span class="message-direction">${message.direction === 'out' ? 'Bot/Admin' : 'Contacto'}</span>
+            <span class="message-direction">${escapeHtml(getMessageSourceLabel(message))}</span>
             <span class="message-time">${escapeHtml(formatDate(message.timestamp))}</span>
           </div>
           ${renderMessageBody(message)}
@@ -1327,6 +1394,7 @@
     fromDateEl.addEventListener('input', () => renderList(getFilteredConversations()))
     toDateEl.addEventListener('input', () => renderList(getFilteredConversations()))
     statusFilterEl.addEventListener('change', () => renderList(getFilteredConversations()))
+    humanPauseFilterEl.addEventListener('change', () => renderList(getFilteredConversations()))
 
     refreshEl.addEventListener('click', () => {
       loadConversations().catch((error) => alert(error.message))
@@ -1491,7 +1559,8 @@
       await updateConversation(activeConversationJid, {
         status: modalStatusEl.value,
         tags: parseTags(modalTagsEl.value),
-        paymentReceiptStatus: modalReceiptStatusEl.value
+        paymentReceiptStatus: modalReceiptStatusEl.value,
+        humanPauseEnabled: modalHumanPauseEnabledEl.checked
       })
       await loadConversations()
       await openConversation(activeConversationJid)
@@ -1523,8 +1592,27 @@
       await openConversation(activeConversationJid)
     })
 
+    toggleBotPauseEl.addEventListener('click', async () => {
+      if (!activeConversationJid) return
+
+      const conversation = await apiJson(`/api/conversations/${encodeURIComponent(activeConversationJid)}`)
+      const pauseIsActive = isHumanPauseActive(conversation)
+
+      await updateConversation(activeConversationJid, {
+        humanPauseEnabled: true,
+        humanPauseUntil: pauseIsActive ? '' : getHumanPauseUntilFromNow()
+      })
+
+      await loadConversations()
+      await openConversation(activeConversationJid)
+    })
+
     sendReplyEl.addEventListener('click', async () => {
       if (!activeConversationJid) return
+
+      await updateConversation(activeConversationJid, {
+        humanPauseEnabled: modalHumanPauseEnabledEl.checked
+      })
 
       if (replyFileEl.files && replyFileEl.files[0]) {
         await sendMediaReply(activeConversationJid, replyFileEl.files[0], replyTextEl.value)
