@@ -2984,13 +2984,13 @@ async function startBot() {
 
       if (!text) return
 
-      const wasHandled = await handleCommand(sock, sender, text, name)
-      if (wasHandled) return
-
       if (isFirstInboundMessage) {
         await sendMenu(sock, sender, name)
         return
       }
+
+      const wasHandled = await handleCommand(sock, sender, text, name)
+      if (wasHandled) return
 
       if (isGreeting(text)) {
         await sendMenu(sock, sender, name)
