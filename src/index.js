@@ -2978,16 +2978,9 @@ async function startBot() {
         return
       }
 
-      const isFirstInboundMessage = conversation?.messageCount === 1
-
       greetedContacts.add(sender)
 
       if (!text) return
-
-      if (isFirstInboundMessage) {
-        await sendMenu(sock, sender, name)
-        return
-      }
 
       const wasHandled = await handleCommand(sock, sender, text, name)
       if (wasHandled) return
